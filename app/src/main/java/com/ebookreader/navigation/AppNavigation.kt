@@ -1,16 +1,15 @@
 package com.ebookreader.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ebookreader.feature.audioplayer.AudioPlayerScreen
+import com.ebookreader.feature.library.LibraryScreen
+import com.ebookreader.feature.reader.ReaderScreen
+import com.ebookreader.feature.settings.SettingsScreen
 import com.ebookreader.onboarding.OnboardingScreen
 
 object Routes {
@@ -43,8 +42,14 @@ fun AppNavigation() {
         }
 
         composable(Routes.LIBRARY) {
-            // TODO: Replace with LibraryScreen from feature:library
-            PlaceholderScreen("Library")
+            LibraryScreen(
+                onBookClick = { bookId ->
+                    navController.navigate(Routes.reader(bookId))
+                },
+                onSettingsClick = {
+                    navController.navigate(Routes.SETTINGS)
+                }
+            )
         }
 
         composable(
@@ -52,8 +57,13 @@ fun AppNavigation() {
             arguments = listOf(navArgument("bookId") { type = NavType.LongType })
         ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
-            // TODO: Replace with ReaderScreen from feature:reader
-            PlaceholderScreen("Reader (Book ID: $bookId)")
+            ReaderScreen(
+                bookId = bookId,
+                onBack = { navController.popBackStack() },
+                onSwitchToAudio = {
+                    navController.navigate(Routes.audioPlayer(bookId))
+                }
+            )
         }
 
         composable(
@@ -61,23 +71,20 @@ fun AppNavigation() {
             arguments = listOf(navArgument("bookId") { type = NavType.LongType })
         ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
-            // TODO: Replace with AudioPlayerScreen from feature:audioplayer
-            PlaceholderScreen("Audio Player (Book ID: $bookId)")
+            AudioPlayerScreen(
+                bookId = bookId,
+                onBack = { navController.popBackStack() },
+                onSwitchToReader = {
+                    navController.popBackStack()
+                    navController.navigate(Routes.reader(bookId))
+                }
+            )
         }
 
         composable(Routes.SETTINGS) {
-            // TODO: Replace with SettingsScreen from feature:settings
-            PlaceholderScreen("Settings")
+            SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(name: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = name)
     }
 }
