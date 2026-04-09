@@ -20,12 +20,12 @@ fun SleepTimerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Sleep Timer") },
+        title = { Text("Temporizador de sueño") },
         text = {
             Column {
                 listOf(15, 30, 60).forEach { minutes ->
                     Text(
-                        text = "$minutes minutes",
+                        text = "$minutes minutos",
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelect(minutes) }
@@ -36,7 +36,7 @@ fun SleepTimerDialog(
                 }
 
                 Text(
-                    text = "End of chapter",
+                    text = "Fin del capítulo",
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onSelect(-1) }
@@ -48,7 +48,7 @@ fun SleepTimerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = { onSelect(null) }) {
-                Text("Cancel timer")
+                Text("Cancelar temporizador")
             }
         }
     )

@@ -28,7 +28,7 @@ fun ReadingSettings(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Reading",
+            text = "Lectura",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -45,7 +45,7 @@ fun ReadingSettings(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Font Size",
+                    text = "Tamaño de fuente predeterminado",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -77,7 +77,7 @@ fun ReadingSettings(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Line Spacing",
+                    text = "Interlineado",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -107,11 +107,11 @@ fun ReadingSettings(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Keep Screen On",
+                    text = "Mantener pantalla encendida",
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = "Prevent screen from sleeping while reading",
+                    text = "Evitar que la pantalla se apague mientras lees",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

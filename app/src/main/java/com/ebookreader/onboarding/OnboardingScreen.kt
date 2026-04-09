@@ -41,18 +41,18 @@ data class OnboardingPage(
 private val onboardingPages = listOf(
     OnboardingPage(
         icon = Icons.Filled.LibraryBooks,
-        title = "Your Library",
-        description = "Scan your device to automatically discover and organize all your ebooks in one place."
+        title = "Tu Biblioteca",
+        description = "Escanea tu dispositivo para descubrir y organizar automáticamente todos tus ebooks en un solo lugar."
     ),
     OnboardingPage(
         icon = Icons.Filled.Book,
-        title = "Read Anywhere",
-        description = "Customize your reading experience with adjustable fonts, themes, and layouts to suit your preferences."
+        title = "Lee en cualquier lugar",
+        description = "Personaliza tu experiencia de lectura con fuentes, temas y diseños ajustables según tus preferencias."
     ),
     OnboardingPage(
         icon = Icons.Filled.Headphones,
-        title = "Listen to Books",
-        description = "Use text-to-speech to listen to your books hands-free, with natural-sounding voices."
+        title = "Escucha tus libros",
+        description = "Usa el texto a voz para escuchar tus libros sin usar las manos, con voces de sonido natural."
     )
 )
 
@@ -99,7 +99,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 .padding(horizontal = 32.dp, vertical = 48.dp)
         ) {
             Text(
-                text = if (pagerState.currentPage < onboardingPages.size - 1) "Next" else "Get Started"
+                text = if (pagerState.currentPage < onboardingPages.size - 1) "Siguiente" else "Comenzar"
             )
         }
     }

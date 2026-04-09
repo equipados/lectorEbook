@@ -36,16 +36,16 @@ fun GeneralSettings(
                 headlineContent = {
                     Text(
                         text = when (theme) {
-                            AppThemeType.LIGHT -> "Light"
-                            AppThemeType.DARK -> "Dark"
-                            AppThemeType.SYSTEM -> "System Default"
+                            AppThemeType.LIGHT -> "Claro"
+                            AppThemeType.DARK -> "Oscuro"
+                            AppThemeType.SYSTEM -> "Predeterminado del sistema"
                         }
                     )
                 },
                 trailingContent = if (isSelected) {
                     {
                         Text(
-                            text = "Selected",
+                            text = "Seleccionado",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )

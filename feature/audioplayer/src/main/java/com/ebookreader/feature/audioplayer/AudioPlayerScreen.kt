@@ -47,12 +47,12 @@ fun AudioPlayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Audio Player") },
+                title = { Text("Reproductor de Audio") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Atrás"
                         )
                     }
                 },
@@ -60,13 +60,13 @@ fun AudioPlayerScreen(
                     IconButton(onClick = onSwitchToReader) {
                         Icon(
                             imageVector = Icons.Default.MenuBook,
-                            contentDescription = "Switch to reader"
+                            contentDescription = "Cambiar a lector"
                         )
                     }
                     IconButton(onClick = { showSleepTimer = true }) {
                         Icon(
                             imageVector = Icons.Default.Timer,
-                            contentDescription = "Sleep timer"
+                            contentDescription = "Temporizador de sueño"
                         )
                     }
                 }
@@ -123,7 +123,7 @@ fun AudioPlayerScreen(
                 val minutes = uiState.sleepTimerRemaining / 60
                 val seconds = uiState.sleepTimerRemaining % 60
                 Text(
-                    text = "Sleep in $minutes:${"%02d".format(seconds)}",
+                    text = "Apagado en $minutes:${"%02d".format(seconds)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(8.dp)

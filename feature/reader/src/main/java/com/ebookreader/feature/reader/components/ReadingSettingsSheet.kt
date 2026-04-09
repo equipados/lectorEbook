@@ -47,7 +47,7 @@ fun ReadingSettingsSheet(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
-                text = "Reading Settings",
+                text = "Ajustes de lectura",
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -59,7 +59,7 @@ fun ReadingSettingsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Font Size",
+                        text = "Tamaño de fuente",
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
@@ -80,7 +80,7 @@ fun ReadingSettingsSheet(
             // Reading theme
             Column {
                 Text(
-                    text = "Reading Theme",
+                    text = "Tema de lectura",
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -111,7 +111,7 @@ fun ReadingSettingsSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "TTS Speed",
+                        text = "Velocidad de voz",
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(

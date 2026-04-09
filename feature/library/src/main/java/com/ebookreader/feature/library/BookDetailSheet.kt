@@ -49,7 +49,7 @@ fun BookDetailSheet(
                     Text(book.title, style = MaterialTheme.typography.titleLarge)
                     Text(book.author, style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        text = "${(book.progress * 100).toInt()}% completed",
+                        text = "${(book.progress * 100).toInt()}% completado",
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
@@ -63,7 +63,7 @@ fun BookDetailSheet(
             ) {
                 Icon(Icons.Default.MenuBook, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Read")
+                Text("Leer")
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -74,7 +74,7 @@ fun BookDetailSheet(
             ) {
                 Icon(Icons.Default.Headphones, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Listen")
+                Text("Escuchar")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -85,7 +85,7 @@ fun BookDetailSheet(
             ) {
                 Icon(Icons.Default.Delete, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Remove from library")
+                Text("Eliminar de la biblioteca")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

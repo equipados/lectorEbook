@@ -49,7 +49,7 @@ fun AudioControls(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Speed",
+                text = "Velocidad",
                 style = MaterialTheme.typography.labelSmall
             )
             Slider(

@@ -66,14 +66,14 @@ fun ReaderBottomBar(
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause TTS" else "Play TTS"
+                        contentDescription = if (isPlaying) "Pausar TTS" else "Iniciar TTS"
                     )
                 }
 
                 IconButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
-                        contentDescription = "Reading settings"
+                        contentDescription = "Ajustes de lectura"
                     )
                 }
             }

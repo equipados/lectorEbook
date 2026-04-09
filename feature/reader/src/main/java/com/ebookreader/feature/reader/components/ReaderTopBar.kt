@@ -36,7 +36,7 @@ fun ReaderTopBar(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = "Atrás"
                 )
             }
         },
@@ -44,19 +44,19 @@ fun ReaderTopBar(
             IconButton(onClick = onOpenToc) {
                 Icon(
                     imageVector = Icons.Filled.List,
-                    contentDescription = "Table of contents"
+                    contentDescription = "Tabla de contenidos"
                 )
             }
             IconButton(onClick = onToggleBookmark) {
                 Icon(
                     imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                    contentDescription = if (isBookmarked) "Remove bookmark" else "Add bookmark"
+                    contentDescription = if (isBookmarked) "Quitar marcador" else "Añadir marcador"
                 )
             }
             IconButton(onClick = onSwitchToAudio) {
                 Icon(
                     imageVector = Icons.Filled.Headphones,
-                    contentDescription = "Switch to audio player"
+                    contentDescription = "Cambiar a modo audio"
                 )
             }
         },

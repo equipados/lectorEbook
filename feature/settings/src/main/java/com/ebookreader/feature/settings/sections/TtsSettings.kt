@@ -27,7 +27,7 @@ fun TtsSettings(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Text-to-Speech",
+            text = "Texto a voz",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -44,7 +44,7 @@ fun TtsSettings(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Playback Speed",
+                    text = "Velocidad predeterminada",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
@@ -72,11 +72,11 @@ fun TtsSettings(
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
-                text = "Cloud TTS API Key",
+                text = "Clave API de Google Cloud TTS",
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "Required for cloud-based text-to-speech",
+                text = "Necesaria para el texto a voz en la nube",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -84,8 +84,8 @@ fun TtsSettings(
             OutlinedTextField(
                 value = ttsPrefs.cloudApiKey,
                 onValueChange = { onCloudApiKeyChanged(it) },
-                label = { Text("API Key") },
-                placeholder = { Text("Enter your API key") },
+                label = { Text("Clave API") },
+                placeholder = { Text("Introduce tu clave API") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()

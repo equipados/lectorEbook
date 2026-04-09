@@ -21,12 +21,12 @@ fun LibrarySearchBar(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier.fillMaxWidth(),
-        placeholder = { Text("Search by title or author") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+        placeholder = { Text("Buscar por título o autor") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    Icon(Icons.Default.Clear, contentDescription = "Limpiar")
                 }
             }
         },
