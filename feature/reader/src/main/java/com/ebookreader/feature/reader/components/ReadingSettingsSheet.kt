@@ -33,7 +33,7 @@ fun ReadingSettingsSheet(
     onThemeChange: (ReadingThemeType) -> Unit,
     onTtsSpeedChange: (Float) -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartialExpansion = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

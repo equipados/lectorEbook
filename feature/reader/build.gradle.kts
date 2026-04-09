@@ -15,6 +15,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -40,6 +41,7 @@ dependencies {
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
+    implementation(libs.compose.icons.extended)
     debugImplementation(libs.compose.ui.tooling)
 
     // Lifecycle
@@ -56,4 +58,6 @@ dependencies {
 
     // Readium
     implementation(libs.readium.navigator)
+
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
