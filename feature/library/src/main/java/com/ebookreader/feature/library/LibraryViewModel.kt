@@ -2,6 +2,7 @@ package com.ebookreader.feature.library
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ebookreader.core.book.parser.BookParser
@@ -105,14 +106,25 @@ class LibraryViewModel @Inject constructor(
     fun importBook(uri: Uri) {
         viewModelScope.launch {
             try {
-                val fileName = uri.lastPathSegment ?: "unknown"
+                // Get real filename from content resolver
+                val fileName = getFileName(uri) ?: "book_${System.currentTimeMillis()}"
                 val extension = fileName.substringAfterLast('.', "").lowercase()
-                if (extension != "epub" && extension != "pdf") return@launch
+
+                // Determine format from extension or MIME type
+                val mimeType = context.contentResolver.getType(uri) ?: ""
+                val format = when {
+                    extension == "epub" || mimeType.contains("epub") -> BookFormat.EPUB
+                    extension == "pdf" || mimeType.contains("pdf") -> BookFormat.PDF
+                    else -> return@launch
+                }
+
+                val finalName = if (fileName.contains('.')) fileName
+                    else "$fileName.${if (format == BookFormat.EPUB) "epub" else "pdf"}"
 
                 // Copy file to app's internal storage
                 val booksDir = File(context.filesDir, "books")
                 booksDir.mkdirs()
-                val destFile = File(booksDir, fileName.substringAfterLast('/'))
+                val destFile = File(booksDir, finalName)
 
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     destFile.outputStream().use { output ->
@@ -126,21 +138,32 @@ class LibraryViewModel @Inject constructor(
                 val parser = getParser(destFile) ?: return@launch
                 val metadata = parser.parseMetadata(destFile)
                 val coverDir = File(booksDir, ".covers")
-                val coverPath = parser.extractCover(destFile, coverDir)
+                coverDir.mkdirs()
+                val coverPath = try { parser.extractCover(destFile, coverDir) } catch (_: Exception) { null }
 
                 bookRepository.insert(
                     BookEntity(
-                        title = metadata.title,
-                        author = metadata.author,
+                        title = metadata.title.ifBlank { finalName.substringBeforeLast('.') },
+                        author = metadata.author.ifBlank { "Desconocido" },
                         coverPath = coverPath,
                         filePath = destFile.absolutePath,
-                        format = metadata.format
+                        format = format
                     )
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+    }
+
+    private fun getFileName(uri: Uri): String? {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0) return cursor.getString(nameIndex)
+            }
+        }
+        return uri.lastPathSegment?.substringAfterLast('/')
     }
 
     private fun getParser(file: File): BookParser? {

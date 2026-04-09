@@ -66,7 +66,11 @@ fun LibraryScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    filePickerLauncher.launch(arrayOf("application/epub+zip", "application/pdf"))
+                    filePickerLauncher.launch(arrayOf(
+                        "application/epub+zip",
+                        "application/pdf",
+                        "application/octet-stream"
+                    ))
                 }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Añadir libro")
@@ -166,20 +170,16 @@ fun LibraryScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(
                             onClick = {
-                                filePickerLauncher.launch(arrayOf("application/epub+zip", "application/pdf"))
+                                filePickerLauncher.launch(arrayOf(
+                                    "application/epub+zip",
+                                    "application/pdf",
+                                    "application/octet-stream"
+                                ))
                             }
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.size(8.dp))
                             Text("Añadir libro")
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { viewModel.scanForBooks() }
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null)
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text("Escanear dispositivo")
                         }
                     }
                 }
