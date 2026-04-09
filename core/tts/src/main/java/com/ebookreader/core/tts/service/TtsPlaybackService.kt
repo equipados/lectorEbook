@@ -4,23 +4,28 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
 import android.os.Build
+import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
-import androidx.media.app.NotificationCompat.MediaStyle
 import com.ebookreader.core.tts.controller.TtsController
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class TtsPlaybackService : LifecycleService() {
+class TtsPlaybackService : Service() {
 
     @Inject
     lateinit var ttsController: TtsController
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     companion object {
         const val CHANNEL_ID = "tts_playback"
@@ -38,9 +43,11 @@ class TtsPlaybackService : LifecycleService() {
         observeTtsState()
     }
 
+    override fun onBind(intent: Intent?): IBinder? = null
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_PLAY_PAUSE -> lifecycleScope.launch {
+            ACTION_PLAY_PAUSE -> serviceScope.launch {
                 if (ttsController.state.value.isPlaying) {
                     ttsController.pause()
                 } else {
@@ -48,17 +55,17 @@ class TtsPlaybackService : LifecycleService() {
                 }
             }
 
-            ACTION_STOP -> lifecycleScope.launch {
+            ACTION_STOP -> serviceScope.launch {
                 ttsController.stop()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
 
-            ACTION_NEXT -> lifecycleScope.launch {
+            ACTION_NEXT -> serviceScope.launch {
                 ttsController.nextSentence()
             }
 
-            ACTION_PREV -> lifecycleScope.launch {
+            ACTION_PREV -> serviceScope.launch {
                 ttsController.previousSentence()
             }
         }
@@ -67,6 +74,11 @@ class TtsPlaybackService : LifecycleService() {
         startForeground(NOTIFICATION_ID, buildNotification(initialState.isPlaying))
 
         return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
     }
 
     private fun createNotificationChannel() {
@@ -87,7 +99,7 @@ class TtsPlaybackService : LifecycleService() {
     }
 
     private fun observeTtsState() {
-        lifecycleScope.launch {
+        serviceScope.launch {
             ttsController.state.collectLatest { state ->
                 val manager = getSystemService(NotificationManager::class.java)
                 manager.notify(NOTIFICATION_ID, buildNotification(state.isPlaying))
@@ -151,9 +163,6 @@ class TtsPlaybackService : LifecycleService() {
             .addAction(playPauseIcon, playPauseTitle, playPauseIntent)
             .addAction(android.R.drawable.ic_media_next, "Next", nextIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopIntent)
-            .setStyle(
-                MediaStyle().setShowActionsInCompactView(0, 1, 2)
-            )
             .build()
     }
 }

@@ -26,6 +26,10 @@ android {
 dependencies {
     implementation(project(":core:data"))
 
+    // Room (needed for TtsCacheManagerImpl raw queries)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+
     // Media3
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)

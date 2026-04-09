@@ -34,7 +34,7 @@ class TtsCacheManagerImpl @Inject constructor(
         )
         writableDb.execSQL(
             "INSERT INTO tts_cache(textHash, voiceId, audioPath, createdAt) VALUES (?, ?, ?, ?)",
-            arrayOf(hash, voiceId, audioPath, System.currentTimeMillis())
+            arrayOf<Any>(hash, voiceId, audioPath, System.currentTimeMillis())
         )
     }
 

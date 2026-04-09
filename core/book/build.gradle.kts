@@ -14,6 +14,7 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -26,10 +27,6 @@ android {
 dependencies {
     implementation(project(":core:data"))
 
-    // Readium
-    implementation(libs.readium.shared)
-    implementation(libs.readium.streamer)
-
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
@@ -41,4 +38,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
+
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
