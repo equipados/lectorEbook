@@ -8,3 +8,5 @@
 /captures
 .externalNativeBuild
 .cxx
+hs_err_*.log
+replay_*.log
