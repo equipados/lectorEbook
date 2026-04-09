@@ -1,5 +1,7 @@
 package com.ebookreader.feature.library
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ebookreader.core.book.parser.BookParser
@@ -9,7 +11,9 @@ import com.ebookreader.core.book.scanner.BookScanner
 import com.ebookreader.core.data.db.entity.BookEntity
 import com.ebookreader.core.data.repository.BookRepository
 import com.ebookreader.core.data.repository.SortOrder
+import com.ebookreader.core.data.db.entity.BookFormat
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +34,7 @@ data class LibraryUiState(
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val bookRepository: BookRepository,
     private val bookScanner: BookScanner,
     private val epubParser: EpubParser,
@@ -94,6 +99,47 @@ class LibraryViewModel @Inject constructor(
     fun deleteBook(book: BookEntity) {
         viewModelScope.launch {
             bookRepository.delete(book)
+        }
+    }
+
+    fun importBook(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val fileName = uri.lastPathSegment ?: "unknown"
+                val extension = fileName.substringAfterLast('.', "").lowercase()
+                if (extension != "epub" && extension != "pdf") return@launch
+
+                // Copy file to app's internal storage
+                val booksDir = File(context.filesDir, "books")
+                booksDir.mkdirs()
+                val destFile = File(booksDir, fileName.substringAfterLast('/'))
+
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    destFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                } ?: return@launch
+
+                val existing = bookRepository.getByFilePath(destFile.absolutePath)
+                if (existing != null) return@launch
+
+                val parser = getParser(destFile) ?: return@launch
+                val metadata = parser.parseMetadata(destFile)
+                val coverDir = File(booksDir, ".covers")
+                val coverPath = parser.extractCover(destFile, coverDir)
+
+                bookRepository.insert(
+                    BookEntity(
+                        title = metadata.title,
+                        author = metadata.author,
+                        coverPath = coverPath,
+                        filePath = destFile.absolutePath,
+                        format = metadata.format
+                    )
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

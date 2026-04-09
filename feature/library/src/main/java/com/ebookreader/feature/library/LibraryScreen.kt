@@ -1,5 +1,8 @@
 package com.ebookreader.feature.library
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,14 +11,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +56,22 @@ fun LibraryScreen(
     var selectedBook by remember { mutableStateOf<BookEntity?>(null) }
     var showSortMenu by remember { mutableStateOf(false) }
 
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { viewModel.importBook(it) }
+    }
+
     Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    filePickerLauncher.launch(arrayOf("application/epub+zip", "application/pdf"))
+                }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Añadir libro")
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text("Mi Biblioteca") },
@@ -126,16 +147,40 @@ fun LibraryScreen(
                         Icon(
                             imageVector = Icons.Default.MenuBook,
                             contentDescription = null,
-                            modifier = Modifier.size(72.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            modifier = Modifier.size(96.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = "No se encontraron libros.\nPulsa actualizar para escanear tu dispositivo.",
-                            style = MaterialTheme.typography.bodyLarge,
+                            text = "Tu biblioteca está vacía",
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Añade libros EPUB o PDF para empezar a leer",
+                            style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = {
+                                filePickerLauncher.launch(arrayOf("application/epub+zip", "application/pdf"))
+                            }
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Añadir libro")
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.scanForBooks() }
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Escanear dispositivo")
+                        }
                     }
                 }
             } else {
