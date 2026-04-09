@@ -11,8 +11,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ebookreader.onboarding.OnboardingScreen
 
 object Routes {
+    const val ONBOARDING = "onboarding"
     const val LIBRARY = "library"
     const val READER = "reader/{bookId}"
     const val AUDIO_PLAYER = "audio_player/{bookId}"
@@ -28,8 +30,18 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.LIBRARY
+        startDestination = Routes.ONBOARDING
     ) {
+        composable(Routes.ONBOARDING) {
+            OnboardingScreen(
+                onComplete = {
+                    navController.navigate(Routes.LIBRARY) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Routes.LIBRARY) {
             // TODO: Replace with LibraryScreen from feature:library
             PlaceholderScreen("Library")
