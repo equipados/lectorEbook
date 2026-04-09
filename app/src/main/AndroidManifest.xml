@@ -43,7 +43,7 @@
         </activity>
 
         <service
-            android:name=".TtsPlaybackService"
+            android:name="com.ebookreader.core.tts.service.TtsPlaybackService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
