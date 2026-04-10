@@ -1,32 +1,36 @@
 package com.ebookreader.feature.library
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,6 +46,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ebookreader.core.data.db.entity.BookEntity
 import com.ebookreader.core.data.repository.SortOrder
 import com.ebookreader.feature.library.components.BookGrid
+import com.ebookreader.feature.library.components.BookList
 import com.ebookreader.feature.library.components.LibrarySearchBar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,7 +58,7 @@ fun LibraryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val books by viewModel.books.collectAsState()
-    var selectedBook by remember { mutableStateOf<BookEntity?>(null) }
+    var bookToDelete by remember { mutableStateOf<BookEntity?>(null) }
     var showSortMenu by remember { mutableStateOf(false) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -66,11 +71,13 @@ fun LibraryScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    filePickerLauncher.launch(arrayOf(
-                        "application/epub+zip",
-                        "application/pdf",
-                        "application/octet-stream"
-                    ))
+                    filePickerLauncher.launch(
+                        arrayOf(
+                            "application/epub+zip",
+                            "application/pdf",
+                            "application/octet-stream"
+                        )
+                    )
                 }
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Añadir libro")
@@ -80,6 +87,16 @@ fun LibraryScreen(
             TopAppBar(
                 title = { Text("Mi Biblioteca") },
                 actions = {
+                    IconButton(onClick = { viewModel.toggleViewMode() }) {
+                        Icon(
+                            imageVector = if (uiState.viewMode == LibraryViewMode.GRID) {
+                                Icons.Default.ViewList
+                            } else {
+                                Icons.Default.GridView
+                            },
+                            contentDescription = "Cambiar vista"
+                        )
+                    }
                     IconButton(onClick = { viewModel.scanForBooks() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Escanear")
                     }
@@ -133,13 +150,14 @@ fun LibraryScreen(
             )
 
             if (uiState.isScanning) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (books.isEmpty()) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+            }
+
+            if (books.isEmpty() && !uiState.isScanning) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -170,11 +188,13 @@ fun LibraryScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         Button(
                             onClick = {
-                                filePickerLauncher.launch(arrayOf(
-                                    "application/epub+zip",
-                                    "application/pdf",
-                                    "application/octet-stream"
-                                ))
+                                filePickerLauncher.launch(
+                                    arrayOf(
+                                        "application/epub+zip",
+                                        "application/pdf",
+                                        "application/octet-stream"
+                                    )
+                                )
                             }
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
@@ -184,29 +204,44 @@ fun LibraryScreen(
                     }
                 }
             } else {
-                BookGrid(
-                    books = books,
-                    onBookClick = { book -> selectedBook = book }
-                )
+                when (uiState.viewMode) {
+                    LibraryViewMode.GRID -> BookGrid(
+                        books = books,
+                        onBookClick = { book -> onBookClick(book.id) },
+                        onBookLongClick = { book -> bookToDelete = book }
+                    )
+                    LibraryViewMode.LIST -> BookList(
+                        books = books,
+                        onBookClick = { book -> onBookClick(book.id) },
+                        onBookLongClick = { book -> bookToDelete = book }
+                    )
+                }
             }
         }
     }
 
-    selectedBook?.let { book ->
-        BookDetailSheet(
-            book = book,
-            onDismiss = { selectedBook = null },
-            onRead = {
-                selectedBook = null
-                onBookClick(book.id)
+    // Diálogo de confirmación de borrado (aparece con long-press)
+    bookToDelete?.let { book ->
+        AlertDialog(
+            onDismissRequest = { bookToDelete = null },
+            title = { Text("Eliminar libro") },
+            text = {
+                Text("¿Seguro que quieres eliminar \"${book.title}\" de tu biblioteca?")
             },
-            onListen = {
-                selectedBook = null
-                onBookClick(book.id)
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBook(book)
+                        bookToDelete = null
+                    }
+                ) {
+                    Text("Eliminar")
+                }
             },
-            onDelete = {
-                viewModel.deleteBook(book)
-                selectedBook = null
+            dismissButton = {
+                TextButton(onClick = { bookToDelete = null }) {
+                    Text("Cancelar")
+                }
             }
         )
     }

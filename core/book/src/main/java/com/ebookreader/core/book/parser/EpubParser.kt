@@ -21,6 +21,11 @@ import java.io.StringReader
 import java.util.zip.ZipFile
 import javax.inject.Inject
 
+data class ExtractedEpub(
+    val chapterFiles: List<File>,
+    val chapterTitles: List<String>
+)
+
 class EpubParser @Inject constructor(
     @ApplicationContext private val context: Context
 ) : BookParser {
@@ -77,6 +82,54 @@ class EpubParser @Inject constructor(
             }
         }
         TableOfContents(entries)
+    }
+
+    /**
+     * Extracts the entire EPUB archive to a subdirectory of the app cache
+     * and returns the ordered list of chapter HTML files (following the spine),
+     * along with a parallel list of chapter titles (resolved from ToC or fallbacks).
+     *
+     * The extraction is idempotent — a stable directory based on the file name +
+     * last-modified timestamp is reused across calls.
+     */
+    suspend fun extractToCache(file: File): ExtractedEpub = withContext(Dispatchers.IO) {
+        val info = runCatching { extractEpubInfo(file) }.getOrNull()
+            ?: return@withContext ExtractedEpub(emptyList(), emptyList())
+
+        val safeName = file.nameWithoutExtension.replace(Regex("[^A-Za-z0-9_-]"), "_")
+        val targetDir = File(context.cacheDir, "epub_${safeName}_${file.lastModified()}")
+
+        if (!targetDir.exists() || targetDir.list().isNullOrEmpty()) {
+            targetDir.mkdirs()
+            runCatching {
+                ZipFile(file).use { zip ->
+                    val entries = zip.entries()
+                    val targetCanonical = targetDir.canonicalPath
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        if (entry.isDirectory) continue
+                        val outFile = File(targetDir, entry.name)
+                        // Zip-slip guard
+                        if (!outFile.canonicalPath.startsWith(targetCanonical)) continue
+                        outFile.parentFile?.mkdirs()
+                        zip.getInputStream(entry).use { input ->
+                            FileOutputStream(outFile).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        val chapterFiles = info.spineItems.mapNotNull { item ->
+            val f = File(targetDir, item.href)
+            if (f.exists()) f else null
+        }
+        val chapterTitles = info.spineItems.mapIndexed { i, item ->
+            item.title.ifBlank { "Capítulo ${i + 1}" }
+        }
+        ExtractedEpub(chapterFiles, chapterTitles)
     }
 
     override suspend fun extractCover(file: File, outputDir: File): String? = withContext(Dispatchers.IO) {

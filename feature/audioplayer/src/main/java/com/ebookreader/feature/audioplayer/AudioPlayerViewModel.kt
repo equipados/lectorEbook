@@ -79,6 +79,15 @@ class AudioPlayerViewModel @Inject constructor(
             val titles = content.chapters.map { it.title }
 
             ttsController.loadText(chapters)
+
+            // Sincroniza el TTS con la última posición guardada del libro,
+            // para que el reproductor empiece en el capítulo donde el usuario
+            // estaba leyendo en el visor, no desde el principio.
+            val savedChapter = book.lastPosition.toIntOrNull() ?: 0
+            if (savedChapter > 0) {
+                ttsController.jumpToChapter(savedChapter)
+            }
+
             _uiState.update { it.copy(isLoading = false, chapterTitles = titles) }
 
             val intent = Intent(context, TtsPlaybackService::class.java)

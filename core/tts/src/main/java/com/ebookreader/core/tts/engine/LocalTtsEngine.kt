@@ -22,14 +22,27 @@ class LocalTtsEngine @Inject constructor(
     private var initialized = false
 
     override suspend fun initialize(): Boolean = suspendCancellableCoroutine { continuation ->
-        val instance = TextToSpeech(context) { status ->
+        // Usamos un holder porque el OnInitListener puede correr antes de que
+        // la variable local `instance` quede asignada (desde el punto de vista
+        // del compilador Kotlin).
+        var instance: TextToSpeech? = null
+        instance = TextToSpeech(context) { status ->
             initialized = status == TextToSpeech.SUCCESS
+            if (initialized) {
+                val spanish = Locale("es", "ES")
+                val result = instance?.setLanguage(spanish)
+                if (result == TextToSpeech.LANG_MISSING_DATA ||
+                    result == TextToSpeech.LANG_NOT_SUPPORTED
+                ) {
+                    instance?.setLanguage(Locale.getDefault())
+                }
+            }
             continuation.resume(initialized)
         }
         tts = instance
 
         continuation.invokeOnCancellation {
-            instance.shutdown()
+            instance?.shutdown()
             tts = null
             initialized = false
         }

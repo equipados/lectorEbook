@@ -9,14 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,7 +29,6 @@ fun BookDetailSheet(
     book: BookEntity,
     onDismiss: () -> Unit,
     onRead: () -> Unit,
-    onListen: () -> Unit,
     onDelete: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -63,18 +60,7 @@ fun BookDetailSheet(
             ) {
                 Icon(Icons.Default.MenuBook, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Leer")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = onListen,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Headphones, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Escuchar")
+                Text("Abrir")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

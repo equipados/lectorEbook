@@ -106,4 +106,10 @@ class SettingsViewModel @Inject constructor(
             userPreferences.updateTtsPrefs(ttsPrefs.value.copy(cloudApiKey = apiKey))
         }
     }
+
+    fun updateCloudVoice(voiceId: String) {
+        viewModelScope.launch {
+            userPreferences.updateTtsPrefs(ttsPrefs.value.copy(cloudVoiceName = voiceId))
+        }
+    }
 }

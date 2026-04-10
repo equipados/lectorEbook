@@ -14,6 +14,7 @@ import com.ebookreader.core.data.db.entity.BookEntity
 fun BookGrid(
     books: List<BookEntity>,
     onBookClick: (BookEntity) -> Unit,
+    onBookLongClick: (BookEntity) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -26,7 +27,8 @@ fun BookGrid(
         items(books, key = { it.id }) { book ->
             BookCard(
                 book = book,
-                onClick = { onBookClick(book) }
+                onClick = { onBookClick(book) },
+                onLongClick = { onBookLongClick(book) }
             )
         }
     }

@@ -32,6 +32,10 @@ data class ReaderUiState(
     val isLoading: Boolean = true,
     val showControls: Boolean = true,
     val toc: TableOfContents = TableOfContents(emptyList()),
+    val chapterFiles: List<String> = emptyList(),
+    val chapterTextLengths: List<Int> = emptyList(),
+    val firstContentChapterIndex: Int = 0,
+    val currentChapterIndex: Int = 0,
     val isFullscreen: Boolean = false,
     val showSettingsSheet: Boolean = false,
     val errorMessage: String? = null
@@ -89,11 +93,39 @@ class ReaderViewModel @Inject constructor(
                 }
                 ttsController.loadText(chapters)
 
+                // Longitudes de los capítulos (para detectar capítulos de
+                // índice/portada con muy poco texto) y primer capítulo con
+                // contenido narrativo real.
+                val textLengths = content.chapters.map { it.textContent.trim().length }
+                val firstContent = textLengths
+                    .indexOfFirst { it >= NARRATIVE_CHAPTER_MIN_CHARS }
+                    .takeIf { it >= 0 } ?: 0
+
+                val chapterFiles: List<String>
+                val initialChapter: Int
+                if (book.format == BookFormat.EPUB) {
+                    val extracted = epubParser.extractToCache(file)
+                    chapterFiles = extracted.chapterFiles.map { it.absolutePath }
+                    val saved = book.lastPosition.toIntOrNull() ?: 0
+                    initialChapter = if (chapterFiles.isEmpty()) {
+                        0
+                    } else {
+                        saved.coerceIn(0, chapterFiles.lastIndex)
+                    }
+                } else {
+                    chapterFiles = emptyList()
+                    initialChapter = 0
+                }
+
                 _uiState.update {
                     it.copy(
                         book = book,
                         isLoading = false,
-                        toc = toc
+                        toc = toc,
+                        chapterFiles = chapterFiles,
+                        chapterTextLengths = textLengths,
+                        firstContentChapterIndex = firstContent,
+                        currentChapterIndex = initialChapter
                     )
                 }
             } catch (e: Exception) {
@@ -125,6 +157,27 @@ class ReaderViewModel @Inject constructor(
             if (ttsController.state.value.isPlaying) {
                 ttsController.pause()
             } else {
+                val state = _uiState.value
+                val readerChapter = state.currentChapterIndex
+                val currentLen = state.chapterTextLengths.getOrNull(readerChapter) ?: 0
+
+                // Si el capítulo actual tiene muy poco texto (portada, índice,
+                // página de copyright...) saltar al primer capítulo narrativo
+                // para que no lea contenido sin sentido en voz alta.
+                val targetChapter = if (currentLen < NARRATIVE_CHAPTER_MIN_CHARS) {
+                    state.firstContentChapterIndex.also { idx ->
+                        if (idx != readerChapter) {
+                            _uiState.update { it.copy(currentChapterIndex = idx) }
+                            persistChapterPosition(idx, state.chapterFiles.size)
+                        }
+                    }
+                } else {
+                    readerChapter
+                }
+
+                if (ttsController.state.value.currentChapterIndex != targetChapter) {
+                    ttsController.jumpToChapter(targetChapter)
+                }
                 ttsController.play()
             }
         }
@@ -153,8 +206,42 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun jumpToChapter(index: Int) {
+        val state = _uiState.value
+        val total = state.chapterFiles.size
+        val safe = if (total > 0) index.coerceIn(0, total - 1) else 0
+        _uiState.update { it.copy(currentChapterIndex = safe) }
+        persistChapterPosition(safe, total)
         viewModelScope.launch {
-            ttsController.jumpToChapter(index)
+            ttsController.jumpToChapter(safe)
+        }
+    }
+
+    fun nextChapter() {
+        val state = _uiState.value
+        val total = state.chapterFiles.size
+        if (total == 0) return
+        val next = (state.currentChapterIndex + 1).coerceAtMost(total - 1)
+        if (next != state.currentChapterIndex) {
+            _uiState.update { it.copy(currentChapterIndex = next) }
+            persistChapterPosition(next, total)
+        }
+    }
+
+    fun previousChapter() {
+        val state = _uiState.value
+        val total = state.chapterFiles.size
+        if (total == 0) return
+        val prev = (state.currentChapterIndex - 1).coerceAtLeast(0)
+        if (prev != state.currentChapterIndex) {
+            _uiState.update { it.copy(currentChapterIndex = prev) }
+            persistChapterPosition(prev, total)
+        }
+    }
+
+    private fun persistChapterPosition(index: Int, total: Int) {
+        val progress = if (total > 0) index.toFloat() / total else 0f
+        viewModelScope.launch {
+            bookRepository.updateProgress(bookId, progress, index.toString())
         }
     }
 
@@ -188,8 +275,32 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
+    fun increaseFontSize() {
+        val current = readingPrefs.value
+        val next = (current.fontSize + 2).coerceAtMost(48)
+        if (next != current.fontSize) {
+            updateReadingPrefs(current.copy(fontSize = next))
+        }
+    }
+
+    fun decreaseFontSize() {
+        val current = readingPrefs.value
+        val next = (current.fontSize - 2).coerceAtLeast(10)
+        if (next != current.fontSize) {
+            updateReadingPrefs(current.copy(fontSize = next))
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         ttsController.shutdown()
+    }
+
+    companion object {
+        /**
+         * Umbral mínimo de caracteres para considerar que un capítulo tiene
+         * contenido narrativo real (no es portada, índice, copyright, etc.).
+         */
+        private const val NARRATIVE_CHAPTER_MIN_CHARS = 500
     }
 }

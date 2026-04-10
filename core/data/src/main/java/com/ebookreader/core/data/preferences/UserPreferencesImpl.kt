@@ -41,6 +41,7 @@ class UserPreferencesImpl @Inject constructor(
         val APP_THEME = stringPreferencesKey("app_theme")
         val SCAN_DIRECTORIES = stringSetPreferencesKey("app_scan_directories")
         val LANGUAGE = stringPreferencesKey("app_language")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("app_onboarding_completed")
     }
 
     // -----------------------------------------------------------------------
@@ -77,7 +78,8 @@ class UserPreferencesImpl @Inject constructor(
                 ?.let { runCatching { AppThemeType.valueOf(it) }.getOrNull() }
                 ?: AppThemeType.SYSTEM,
             scanDirectories = prefs[Keys.SCAN_DIRECTORIES]?.toList() ?: emptyList(),
-            language = prefs[Keys.LANGUAGE] ?: "system"
+            language = prefs[Keys.LANGUAGE] ?: "system",
+            onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false
         )
     }
 
@@ -110,6 +112,7 @@ class UserPreferencesImpl @Inject constructor(
             store[Keys.APP_THEME] = prefs.appTheme.name
             store[Keys.SCAN_DIRECTORIES] = prefs.scanDirectories.toSet()
             store[Keys.LANGUAGE] = prefs.language
+            store[Keys.ONBOARDING_COMPLETED] = prefs.onboardingCompleted
         }
     }
 }

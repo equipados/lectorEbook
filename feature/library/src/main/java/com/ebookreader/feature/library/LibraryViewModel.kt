@@ -27,10 +27,13 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
+enum class LibraryViewMode { GRID, LIST }
+
 data class LibraryUiState(
     val isScanning: Boolean = false,
     val sortOrder: SortOrder = SortOrder.RECENT,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val viewMode: LibraryViewMode = LibraryViewMode.GRID
 )
 
 @HiltViewModel
@@ -55,10 +58,6 @@ class LibraryViewModel @Inject constructor(
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    init {
-        scanForBooks()
-    }
 
     fun scanForBooks() {
         viewModelScope.launch {
@@ -95,6 +94,18 @@ class LibraryViewModel @Inject constructor(
 
     fun setSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun toggleViewMode() {
+        _uiState.update {
+            it.copy(
+                viewMode = if (it.viewMode == LibraryViewMode.GRID) {
+                    LibraryViewMode.LIST
+                } else {
+                    LibraryViewMode.GRID
+                }
+            )
+        }
     }
 
     fun deleteBook(book: BookEntity) {

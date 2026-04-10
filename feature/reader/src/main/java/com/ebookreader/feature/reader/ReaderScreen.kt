@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ebookreader.core.data.db.entity.BookFormat
 import com.ebookreader.core.data.preferences.ReadingPrefs
-import com.ebookreader.core.ui.components.PlaybackControls
 import com.ebookreader.feature.reader.components.ReaderBottomBar
 import com.ebookreader.feature.reader.components.ReaderTopBar
 import com.ebookreader.feature.reader.components.ReadingSettingsSheet
@@ -111,7 +110,23 @@ fun ReaderScreen(
                         progress = book?.progress ?: 0f,
                         isPlaying = ttsState.isPlaying,
                         onPlayPauseTts = viewModel::playPauseTts,
-                        onOpenSettings = viewModel::showSettingsSheet
+                        onOpenSettings = viewModel::showSettingsSheet,
+                        onFontSmaller = {
+                            viewModel.decreaseFontSize()
+                            val newSize = (readingPrefs.fontSize - 2).coerceAtLeast(10)
+                            scope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                snackbarHostState.showSnackbar("Tamaño: ${newSize}px")
+                            }
+                        },
+                        onFontLarger = {
+                            viewModel.increaseFontSize()
+                            val newSize = (readingPrefs.fontSize + 2).coerceAtMost(48)
+                            scope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                snackbarHostState.showSnackbar("Tamaño: ${newSize}px")
+                            }
+                        }
                     )
                 }
             }
@@ -134,17 +149,25 @@ fun ReaderScreen(
                     }
 
                     book.format == BookFormat.EPUB -> {
-                        EpubReaderView(
-                            filePath = book.filePath,
-                            lastPosition = book.lastPosition,
-                            readingPrefs = readingPrefs,
-                            currentTtsSegment = currentSegment,
-                            onPageChanged = { progress ->
-                                viewModel.updateProgress(progress, progress.toString())
-                            },
-                            onTap = viewModel::toggleControls,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        val chapterPath = uiState.chapterFiles.getOrNull(uiState.currentChapterIndex)
+                        if (chapterPath != null) {
+                            EpubReaderView(
+                                chapterFilePath = chapterPath,
+                                readingPrefs = readingPrefs,
+                                currentTtsSegment = currentSegment,
+                                onPreviousChapter = viewModel::previousChapter,
+                                onNextChapter = viewModel::nextChapter,
+                                onTap = viewModel::toggleControls,
+                                onFontLarger = viewModel::increaseFontSize,
+                                onFontSmaller = viewModel::decreaseFontSize,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Text(
+                                text = "No se pudo extraer el contenido del EPUB",
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
                     }
 
                     book.format == BookFormat.PDF -> {
@@ -159,23 +182,6 @@ fun ReaderScreen(
                     }
                 }
 
-                // TTS playback controls overlay (shown when TTS is active)
-                AnimatedVisibility(
-                    visible = uiState.showControls && (ttsState.isPlaying || currentSegment != null),
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    PlaybackControls(
-                        isPlaying = ttsState.isPlaying,
-                        onPlayPause = viewModel::playPauseTts,
-                        onStop = viewModel::stopTts,
-                        onPreviousSentence = viewModel::previousSentence,
-                        onNextSentence = viewModel::nextSentence
-                    )
-                }
             }
         }
 

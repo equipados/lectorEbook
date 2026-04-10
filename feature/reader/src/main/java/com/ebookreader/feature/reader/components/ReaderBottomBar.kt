@@ -29,6 +29,8 @@ fun ReaderBottomBar(
     isPlaying: Boolean,
     onPlayPauseTts: () -> Unit,
     onOpenSettings: () -> Unit,
+    onFontSmaller: () -> Unit = {},
+    onFontLarger: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -59,6 +61,20 @@ fun ReaderBottomBar(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                IconButton(onClick = onFontSmaller) {
+                    Text(
+                        text = "A−",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                IconButton(onClick = onFontLarger) {
+                    Text(
+                        text = "A+",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
 
                 FloatingActionButton(
                     onClick = onPlayPauseTts,

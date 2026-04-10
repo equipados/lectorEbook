@@ -1,5 +1,6 @@
 package com.ebookreader.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -7,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +29,7 @@ import com.ebookreader.feature.settings.sections.TtsSettings
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onAboutClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -75,7 +78,23 @@ fun SettingsScreen(
             TtsSettings(
                 ttsPrefs = ttsPrefs,
                 onSpeedChanged = viewModel::updateTtsSpeed,
-                onCloudApiKeyChanged = viewModel::updateCloudApiKey
+                onCloudApiKeyChanged = viewModel::updateCloudApiKey,
+                onEngineChanged = viewModel::updateTtsEngine,
+                onCloudVoiceChanged = viewModel::updateCloudVoice
+            )
+
+            HorizontalDivider()
+
+            androidx.compose.material3.ListItem(
+                headlineContent = { Text("Acerca de") },
+                supportingContent = { Text("Versión, desarrollador y créditos") },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null
+                    )
+                },
+                modifier = Modifier.clickable { onAboutClick() }
             )
         }
     }

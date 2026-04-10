@@ -27,7 +27,7 @@ data class ReadingPrefs(
 data class TtsPrefs(
     val preferredEngine: TtsEngineType = TtsEngineType.LOCAL,
     val localVoiceName: String = "",
-    val cloudVoiceName: String = "en-US-Neural2-F",
+    val cloudVoiceName: String = "es-ES-Standard-A",
     val speed: Float = 1.0f,
     val cloudApiKey: String = ""
 )
@@ -35,7 +35,8 @@ data class TtsPrefs(
 data class AppPrefs(
     val appTheme: AppThemeType = AppThemeType.SYSTEM,
     val scanDirectories: List<String> = emptyList(),
-    val language: String = "system"
+    val language: String = "system",
+    val onboardingCompleted: Boolean = false
 )
 
 // ---------------------------------------------------------------------------

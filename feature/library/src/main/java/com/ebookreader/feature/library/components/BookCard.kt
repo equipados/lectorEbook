@@ -1,6 +1,7 @@
 package com.ebookreader.feature.library.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,13 +17,20 @@ import androidx.compose.ui.unit.dp
 import com.ebookreader.core.data.db.entity.BookEntity
 import com.ebookreader.core.ui.components.BookCoverImage
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BookCard(
     book: BookEntity,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.clickable(onClick = onClick)) {
+    Card(
+        modifier = modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
+    ) {
         Column {
             BookCoverImage(
                 coverPath = book.coverPath,
