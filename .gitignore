@@ -10,3 +10,11 @@
 .cxx
 hs_err_*.log
 replay_*.log
+
+# APKs generados (se construyen con gradle)
+*.apk
+
+# Archivos con secretos (API keys, tokens)
+api*.txt
+*.key
+secrets.properties
