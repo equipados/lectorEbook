@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.ebookreader.core.tts.controller.TtsController
 import dagger.hilt.android.AndroidEntryPoint
@@ -26,6 +27,7 @@ class TtsPlaybackService : Service() {
     lateinit var ttsController: TtsController
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var wakeLockController: PlaybackWakeLockController? = null
 
     companion object {
         const val CHANNEL_ID = "tts_playback"
@@ -39,6 +41,7 @@ class TtsPlaybackService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        wakeLockController = createWakeLockController()
         createNotificationChannel()
         observeTtsState()
     }
@@ -57,6 +60,7 @@ class TtsPlaybackService : Service() {
 
             ACTION_STOP -> serviceScope.launch {
                 ttsController.stop()
+                wakeLockController?.onServiceStopping()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -77,6 +81,7 @@ class TtsPlaybackService : Service() {
     }
 
     override fun onDestroy() {
+        wakeLockController?.onServiceStopping()
         super.onDestroy()
         serviceScope.cancel()
     }
@@ -101,10 +106,22 @@ class TtsPlaybackService : Service() {
     private fun observeTtsState() {
         serviceScope.launch {
             ttsController.state.collectLatest { state ->
+                wakeLockController?.onPlaybackStateChanged(state.isPlaying)
                 val manager = getSystemService(NotificationManager::class.java)
                 manager.notify(NOTIFICATION_ID, buildNotification(state.isPlaying))
             }
         }
+    }
+
+    private fun createWakeLockController(): PlaybackWakeLockController? {
+        val powerManager = getSystemService(PowerManager::class.java) ?: return null
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "$packageName:TtsPlaybackCpu"
+        ).apply {
+            setReferenceCounted(false)
+        }
+        return PlaybackWakeLockController(AndroidCpuWakeLock(wakeLock))
     }
 
     private fun buildNotification(isPlaying: Boolean): Notification {
