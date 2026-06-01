@@ -6,9 +6,11 @@ import com.ebookreader.core.tts.engine.CloudTtsEngine
 import com.ebookreader.core.tts.engine.LocalTtsEngine
 import com.ebookreader.core.tts.engine.TtsEngine
 import com.ebookreader.core.tts.model.EngineType
+import com.ebookreader.core.tts.model.NowPlayingMetadata
 import com.ebookreader.core.tts.model.TextSegment
 import com.ebookreader.core.tts.model.TtsState
 import com.ebookreader.core.tts.model.TtsVoice
+import com.ebookreader.core.tts.model.buildNowPlaying
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,6 +37,14 @@ class TtsControllerImpl @Inject constructor(
 
     private val _currentSegment = MutableStateFlow<TextSegment?>(null)
     override val currentSegment: StateFlow<TextSegment?> = _currentSegment.asStateFlow()
+
+    private val _nowPlaying = MutableStateFlow(NowPlayingMetadata())
+    override val nowPlaying: StateFlow<NowPlayingMetadata> = _nowPlaying.asStateFlow()
+
+    private var chapterTitles: List<String> = emptyList()
+    private var bookTitle: String = ""
+    private var bookAuthor: String = ""
+    private var bookCoverPath: String? = null
 
     private var segments: List<TextSegment> = emptyList()
 
@@ -86,6 +96,11 @@ class TtsControllerImpl @Inject constructor(
                 }
             }
             .launchIn(scope)
+
+        // Recalcula la metadata de "ahora sonando" cada vez que cambia el capítulo.
+        state
+            .onEach { refreshNowPlaying() }
+            .launchIn(scope)
     }
 
     private val activeEngine: TtsEngine
@@ -95,6 +110,7 @@ class TtsControllerImpl @Inject constructor(
         }
 
     override suspend fun loadText(chapters: List<Pair<String, String>>) {
+        chapterTitles = chapters.map { it.first }
         val built = mutableListOf<TextSegment>()
         val lengths = mutableMapOf<Int, Int>()
         chapters.forEachIndexed { chapterIndex, (_, content) ->
@@ -259,6 +275,23 @@ class TtsControllerImpl @Inject constructor(
     override fun shutdown() {
         localEngine.shutdown()
         cloudEngine.shutdown()
+    }
+
+    override fun setBookInfo(title: String, author: String, coverPath: String?) {
+        bookTitle = title
+        bookAuthor = author
+        bookCoverPath = coverPath
+        refreshNowPlaying()
+    }
+
+    private fun refreshNowPlaying() {
+        _nowPlaying.value = buildNowPlaying(
+            bookTitle = bookTitle,
+            author = bookAuthor,
+            coverPath = bookCoverPath,
+            chapterTitles = chapterTitles,
+            chapterIndex = _state.value.currentChapterIndex
+        )
     }
 
     private suspend fun speakCurrentSegment() {

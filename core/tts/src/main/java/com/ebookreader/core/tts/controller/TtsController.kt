@@ -1,5 +1,6 @@
 package com.ebookreader.core.tts.controller
 
+import com.ebookreader.core.tts.model.NowPlayingMetadata
 import com.ebookreader.core.tts.model.TextSegment
 import com.ebookreader.core.tts.model.TtsState
 import com.ebookreader.core.tts.model.TtsVoice
@@ -10,6 +11,12 @@ interface TtsController {
     val state: StateFlow<TtsState>
 
     val currentSegment: StateFlow<TextSegment?>
+
+    /** Metadata de "ahora sonando" para los controles multimedia externos. */
+    val nowPlaying: StateFlow<NowPlayingMetadata>
+
+    /** Datos del libro en reproducción (para lockscreen / coche). */
+    fun setBookInfo(title: String, author: String, coverPath: String?)
 
     /**
      * Load chapters as title-content pairs and split into speakable segments.
