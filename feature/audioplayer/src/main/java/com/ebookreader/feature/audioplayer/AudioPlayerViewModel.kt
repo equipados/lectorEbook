@@ -66,6 +66,8 @@ class AudioPlayerViewModel @Inject constructor(
             }
             _uiState.update { it.copy(book = book) }
 
+            ttsController.setBookInfo(book.title, book.author, book.coverPath)
+
             val file = File(book.filePath)
             val parser = when (book.format) {
                 BookFormat.EPUB -> epubParser
