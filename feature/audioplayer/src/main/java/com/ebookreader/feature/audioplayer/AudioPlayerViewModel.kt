@@ -66,8 +66,6 @@ class AudioPlayerViewModel @Inject constructor(
             }
             _uiState.update { it.copy(book = book) }
 
-            ttsController.setBookInfo(book.title, book.author, book.coverPath)
-
             val file = File(book.filePath)
             val parser = when (book.format) {
                 BookFormat.EPUB -> epubParser
@@ -81,6 +79,8 @@ class AudioPlayerViewModel @Inject constructor(
             val titles = content.chapters.map { it.title }
 
             ttsController.loadText(chapters)
+
+            ttsController.setBookInfo(book.title, book.author, book.coverPath)
 
             // Sincroniza el TTS con la última posición guardada del libro,
             // para que el reproductor empiece en el capítulo donde el usuario
