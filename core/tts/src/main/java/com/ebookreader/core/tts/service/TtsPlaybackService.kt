@@ -75,8 +75,8 @@ class TtsPlaybackService : Service() {
         audioFocusController?.onPlaybackStopping()
         mediaSession.isActive = false
         mediaSession.release()
-        super.onDestroy()
         serviceScope.cancel()
+        super.onDestroy()
     }
 
     private fun initMediaSession() {
@@ -104,6 +104,15 @@ class TtsPlaybackService : Service() {
                 ttsController.stop()
                 audioFocusController?.onPlaybackStopping()
                 wakeLockController?.onServiceStopping()
+                mediaSession.setPlaybackState(
+                    PlaybackStateCompat.Builder()
+                        .setState(
+                            PlaybackStateCompat.STATE_STOPPED,
+                            PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                            1.0f
+                        )
+                        .build()
+                )
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
