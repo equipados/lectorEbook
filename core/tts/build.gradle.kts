@@ -30,9 +30,12 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
 
-    // Media3
+    // Media3 (no usado actualmente; candidato a eliminación)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.session)
+
+    // MediaSessionCompat (controles multimedia externos: bluetooth, coche, lockscreen)
+    implementation(libs.androidx.media)
 
     // Google Cloud TTS
     implementation(libs.google.cloud.tts)
