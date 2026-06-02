@@ -85,8 +85,9 @@ class ReaderViewModel @Inject constructor(
                 val file = File(book.filePath)
                 val parser = if (book.format == BookFormat.EPUB) epubParser else pdfParser
 
-                val toc = parser.getTableOfContents(file)
+                val rawToc = parser.getTableOfContents(file)
                 val content = parser.extractTextContent(file)
+                val toc = com.ebookreader.core.book.toc.TocEnricher.enrich(rawToc, content)
 
                 val chapters = content.chapters.map { chapter ->
                     chapter.title to chapter.textContent
@@ -220,6 +221,12 @@ class ReaderViewModel @Inject constructor(
         viewModelScope.launch {
             ttsController.jumpToChapter(safe)
         }
+    }
+
+    /** Navega a una entrada del índice usando su índice de capítulo ya resuelto. */
+    fun jumpToTocEntry(chapterIndex: Int) {
+        if (chapterIndex < 0) return
+        jumpToChapter(chapterIndex)
     }
 
     fun nextChapter() {
