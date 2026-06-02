@@ -47,6 +47,7 @@ class PdfParser @Inject constructor(
                         chapters.add(
                             Chapter(
                                 index = i,
+                                href = "",
                                 title = "Page ${i + 1}",
                                 textContent = "[Page ${i + 1} of $pageCount — visual content only]"
                             )

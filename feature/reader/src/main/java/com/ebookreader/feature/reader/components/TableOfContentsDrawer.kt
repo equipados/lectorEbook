@@ -2,12 +2,9 @@ package com.ebookreader.feature.reader.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Divider
@@ -15,8 +12,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ebookreader.core.book.model.TableOfContents
 import com.ebookreader.core.book.model.TocEntry
@@ -24,7 +21,7 @@ import com.ebookreader.core.book.model.TocEntry
 @Composable
 fun TableOfContentsDrawer(
     toc: TableOfContents,
-    onEntryClick: (TocEntry, Int) -> Unit,
+    onEntryClick: (TocEntry) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -34,24 +31,23 @@ fun TableOfContentsDrawer(
     ) {
         Column {
             Text(
-                text = "Table of Contents",
+                text = "Índice",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(16.dp)
             )
             Divider()
             if (toc.entries.isEmpty()) {
                 Text(
-                    text = "No table of contents available",
+                    text = "Sin índice disponible",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
                 LazyColumn {
-                    itemsIndexed(toc.entries) { index, entry ->
+                    itemsIndexed(toc.entries) { _, entry ->
                         TocEntryItem(
                             entry = entry,
-                            index = index,
                             depth = 0,
                             onEntryClick = onEntryClick
                         )
@@ -66,25 +62,20 @@ fun TableOfContentsDrawer(
 @Composable
 private fun TocEntryItem(
     entry: TocEntry,
-    index: Int,
     depth: Int,
-    onEntryClick: (TocEntry, Int) -> Unit
+    onEntryClick: (TocEntry) -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onEntryClick(entry, index) }
+            .clickable { onEntryClick(entry) }
             .padding(
                 start = (16 + depth * 16).dp,
                 end = 16.dp,
                 top = 12.dp,
                 bottom = 12.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically
+            )
     ) {
-        if (depth > 0) {
-            Spacer(modifier = Modifier.width(8.dp))
-        }
         Text(
             text = entry.title,
             style = if (depth == 0) {
@@ -98,11 +89,20 @@ private fun TocEntryItem(
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
         )
+        if (entry.preview.isNotBlank()) {
+            Text(
+                text = entry.preview,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp)
+            )
+        }
     }
-    entry.children.forEachIndexed { childIndex, child ->
+    entry.children.forEach { child ->
         TocEntryItem(
             entry = child,
-            index = childIndex,
             depth = depth + 1,
             onEntryClick = onEntryClick
         )
