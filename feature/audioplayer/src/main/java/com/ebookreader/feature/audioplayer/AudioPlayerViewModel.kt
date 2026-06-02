@@ -1,7 +1,5 @@
 package com.ebookreader.feature.audioplayer
 
-import android.content.Context
-import android.content.Intent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,9 +11,7 @@ import com.ebookreader.core.data.repository.BookRepository
 import com.ebookreader.core.tts.controller.TtsController
 import com.ebookreader.core.tts.model.TextSegment
 import com.ebookreader.core.tts.model.TtsState
-import com.ebookreader.core.tts.service.TtsPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +33,6 @@ data class AudioPlayerUiState(
 @HiltViewModel
 class AudioPlayerViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val context: Context,
     private val bookRepository: BookRepository,
     private val epubParser: EpubParser,
     private val pdfParser: PdfParser,
@@ -91,9 +86,6 @@ class AudioPlayerViewModel @Inject constructor(
             }
 
             _uiState.update { it.copy(isLoading = false, chapterTitles = titles) }
-
-            val intent = Intent(context, TtsPlaybackService::class.java)
-            context.startForegroundService(intent)
         }
     }
 

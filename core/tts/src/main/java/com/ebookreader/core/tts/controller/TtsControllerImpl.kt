@@ -1,5 +1,7 @@
 package com.ebookreader.core.tts.controller
 
+import android.content.Context
+import android.content.Intent
 import com.ebookreader.core.data.preferences.TtsEngineType
 import com.ebookreader.core.data.preferences.UserPreferences
 import com.ebookreader.core.tts.engine.CloudTtsEngine
@@ -11,6 +13,8 @@ import com.ebookreader.core.tts.model.TextSegment
 import com.ebookreader.core.tts.model.TtsState
 import com.ebookreader.core.tts.model.TtsVoice
 import com.ebookreader.core.tts.model.buildNowPlaying
+import com.ebookreader.core.tts.service.TtsPlaybackService
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -27,6 +31,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TtsControllerImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val localEngine: LocalTtsEngine,
     private val cloudEngine: CloudTtsEngine,
     private val userPreferences: UserPreferences
@@ -171,7 +176,20 @@ class TtsControllerImpl @Inject constructor(
         }
 
         _state.update { it.copy(isPlaying = true) }
+        // Arranca (o reactiva) el foreground service para que la notificación
+        // de controles multimedia aparezca sea cual sea la pantalla que inicie
+        // la reproducción (visor o reproductor de audio).
+        ensureServiceRunning()
         speakCurrentSegment()
+    }
+
+    /**
+     * Lanza el [TtsPlaybackService] como foreground service. Es idempotente:
+     * si el servicio ya está activo, simplemente reentra en onStartCommand.
+     */
+    private fun ensureServiceRunning() {
+        val intent = Intent(context, TtsPlaybackService::class.java)
+        context.startForegroundService(intent)
     }
 
     override suspend fun pause() {
