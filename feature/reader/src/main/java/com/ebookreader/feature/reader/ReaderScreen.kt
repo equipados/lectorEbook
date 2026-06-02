@@ -67,8 +67,8 @@ fun ReaderScreen(
         drawerContent = {
             TableOfContentsDrawer(
                 toc = uiState.toc,
-                onEntryClick = { entry, index ->
-                    viewModel.jumpToChapter(index)
+                onEntryClick = { entry ->
+                    viewModel.jumpToTocEntry(entry.chapterIndex)
                     scope.launch { drawerState.close() }
                 }
             )
