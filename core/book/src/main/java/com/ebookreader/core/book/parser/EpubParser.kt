@@ -60,6 +60,7 @@ class EpubParser @Inject constructor(
             val text = stripHtmlTags(rawHtml)
             Chapter(
                 index = index,
+                href = item.href,
                 title = item.title.ifBlank { "Chapter ${index + 1}" },
                 textContent = text
             )
