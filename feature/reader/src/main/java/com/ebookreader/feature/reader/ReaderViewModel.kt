@@ -93,6 +93,12 @@ class ReaderViewModel @Inject constructor(
                 }
                 ttsController.loadText(chapters)
 
+                // Informa al controller de los datos del libro para que la
+                // notificación de controles multimedia (lockscreen, bluetooth)
+                // muestre título, autor y carátula al reproducir desde el visor,
+                // igual que ya hace el reproductor de audio.
+                ttsController.setBookInfo(book.title, book.author, book.coverPath)
+
                 // Longitudes de los capítulos (para detectar capítulos de
                 // índice/portada con muy poco texto) y primer capítulo con
                 // contenido narrativo real.
