@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.ebookreader.core.data.db.AppDatabase
+import com.ebookreader.core.data.db.MIGRATION_1_2
 import com.ebookreader.core.data.db.dao.BookDao
 import com.ebookreader.core.data.db.dao.BookmarkDao
 import com.ebookreader.core.data.preferences.UserPreferences
@@ -63,7 +64,7 @@ object DataProvidesModule {
         context,
         AppDatabase::class.java,
         "ebook_reader.db"
-    ).build()
+    ).addMigrations(MIGRATION_1_2).build()
 
     @Provides
     @Singleton

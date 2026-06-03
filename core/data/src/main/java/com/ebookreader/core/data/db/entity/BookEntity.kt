@@ -14,6 +14,9 @@ data class BookEntity(
     val format: BookFormat,
     val progress: Float = 0f,
     val lastPosition: String = "",
+    val lastChapter: Int = 0,
+    val lastSegment: Int = 0,
+    val lastPage: Int = 0,
     val lastAccess: Long = System.currentTimeMillis(),
     val addedAt: Long = System.currentTimeMillis()
 )

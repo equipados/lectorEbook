@@ -10,7 +10,7 @@ import com.ebookreader.core.data.db.entity.TtsCacheEntity
 
 @Database(
     entities = [BookEntity::class, BookmarkEntity::class, TtsCacheEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
