@@ -36,6 +36,7 @@ fun EpubReaderView(
     chapterFilePath: String,
     readingPrefs: ReadingPrefs,
     currentTtsSegment: TextSegment?,
+    visibleChapterIndex: Int,
     initialPage: Int,
     onPageChanged: (Int) -> Unit,
     onPreviousChapter: () -> Unit,
@@ -266,6 +267,10 @@ fun EpubReaderView(
     val initialPageHolder = remember { mutableStateOf(0) }
     initialPageHolder.value = initialPage
     val initialPageApplied = remember { mutableStateOf(false) }
+    val segmentHolder = remember { mutableStateOf<TextSegment?>(null) }
+    segmentHolder.value = currentTtsSegment
+    val visibleChapterHolder = remember { mutableStateOf(visibleChapterIndex) }
+    visibleChapterHolder.value = visibleChapterIndex
 
     // Lambdas actualizadas — evita stale closures en pointerInput.
     val latestOnPageChanged by rememberUpdatedState(onPageChanged)
@@ -308,6 +313,25 @@ fun EpubReaderView(
     // AndroidView, que puede no dispararse al instante.
     LaunchedEffect(styleScript) {
         webViewRef.value?.evaluateJavascript(styleScript, null)
+    }
+
+    // Resalta la frase del TTS y lleva el visor a su página (si es del capítulo
+    // visible). Si no aplica, limpia el resaltado.
+    LaunchedEffect(currentTtsSegment, visibleChapterIndex) {
+        val wv = webViewRef.value ?: return@LaunchedEffect
+        val seg = currentTtsSegment
+        if (seg != null && seg.chapterIndex == visibleChapterIndex) {
+            val json = org.json.JSONObject.quote(seg.text)
+            wv.evaluateJavascript(
+                "javascript:(function(){ if(!window.__highlightSentence) return; window.__highlightSentence($json); var pg = window.__pageOfSentence($json); if (pg >= 0 && pg !== window.__currentPage) { window.__currentPage = pg; window.scrollTo(pg * window.innerWidth, 0); } })();",
+                null
+            )
+        } else {
+            wv.evaluateJavascript(
+                "javascript:(function(){ if(window.__clearHighlight) window.__clearHighlight(); })();",
+                null
+            )
+        }
     }
 
     Box(modifier = modifier) {
@@ -355,6 +379,14 @@ fun EpubReaderView(
                                         initialPageApplied.value = true
                                         view.evaluateJavascript(
                                             "javascript:(function(){ window.__recalc(); window.__currentPage = Math.min($startPage, window.__totalPages - 1); window.scrollTo(window.__currentPage * window.innerWidth, 0); })();",
+                                            null
+                                        )
+                                    }
+                                    val activeSeg = segmentHolder.value
+                                    if (activeSeg != null && activeSeg.chapterIndex == visibleChapterHolder.value) {
+                                        val sJson = org.json.JSONObject.quote(activeSeg.text)
+                                        view.evaluateJavascript(
+                                            "javascript:(function(){ if(!window.__highlightSentence) return; window.__highlightSentence($sJson); var pg = window.__pageOfSentence($sJson); if (pg >= 0) { window.__currentPage = pg; window.scrollTo(pg * window.innerWidth, 0); } })();",
                                             null
                                         )
                                     }

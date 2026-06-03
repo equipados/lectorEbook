@@ -215,6 +215,21 @@ class ReaderViewModel @Inject constructor(
         ttsController.setSpeed(speed)
     }
 
+    /**
+     * Sincroniza el capítulo visible con el que lee el TTS, sin reordenar el TTS
+     * (unidireccional TTS->visor; evita bucles). Para seguir al narrador al cruzar
+     * de capítulo.
+     */
+    fun syncVisibleChapter(index: Int) {
+        val state = _uiState.value
+        val total = state.chapterFiles.size
+        if (total == 0) return
+        val safe = index.coerceIn(0, total - 1)
+        if (safe == state.currentChapterIndex) return
+        _uiState.update { it.copy(currentChapterIndex = safe) }
+        persistChapterPosition(safe, total)
+    }
+
     fun jumpToChapter(index: Int) {
         val state = _uiState.value
         val total = state.chapterFiles.size

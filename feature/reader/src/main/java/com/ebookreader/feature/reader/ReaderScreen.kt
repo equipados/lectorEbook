@@ -49,6 +49,15 @@ fun ReaderScreen(
     val readingPrefs by viewModel.readingPrefs.collectAsState()
     val bookmarks by viewModel.bookmarks.collectAsState()
 
+    LaunchedEffect(currentSegment?.chapterIndex, ttsState.isPlaying) {
+        val seg = currentSegment
+        if (ttsState.isPlaying && seg != null &&
+            seg.chapterIndex != uiState.currentChapterIndex
+        ) {
+            viewModel.syncVisibleChapter(seg.chapterIndex)
+        }
+    }
+
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -155,6 +164,7 @@ fun ReaderScreen(
                                 chapterFilePath = chapterPath,
                                 readingPrefs = readingPrefs,
                                 currentTtsSegment = currentSegment,
+                                visibleChapterIndex = uiState.currentChapterIndex,
                                 initialPage = uiState.initialPage,
                                 onPageChanged = viewModel::onVisualPageChanged,
                                 onPreviousChapter = viewModel::previousChapter,
