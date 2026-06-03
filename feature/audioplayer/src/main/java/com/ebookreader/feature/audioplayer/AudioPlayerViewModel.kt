@@ -75,15 +75,12 @@ class AudioPlayerViewModel @Inject constructor(
 
             ttsController.loadText(chapters)
 
-            ttsController.setBookInfo(book.title, book.author, book.coverPath)
+            // Restaura la frase exacta donde se quedó la lectura (sin reproducir).
+            ttsController.jumpToSegment(book.lastSegment)
 
-            // Sincroniza el TTS con la última posición guardada del libro,
-            // para que el reproductor empiece en el capítulo donde el usuario
-            // estaba leyendo en el visor, no desde el principio.
-            val savedChapter = book.lastPosition.toIntOrNull() ?: 0
-            if (savedChapter > 0) {
-                ttsController.jumpToChapter(savedChapter)
-            }
+            // Informa al controller de los datos del libro y activa la
+            // persistencia con el bookId.
+            ttsController.setBookInfo(book.id, book.title, book.author, book.coverPath)
 
             _uiState.update { it.copy(isLoading = false, chapterTitles = titles) }
         }
