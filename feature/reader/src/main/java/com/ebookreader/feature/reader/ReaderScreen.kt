@@ -155,6 +155,8 @@ fun ReaderScreen(
                                 chapterFilePath = chapterPath,
                                 readingPrefs = readingPrefs,
                                 currentTtsSegment = currentSegment,
+                                initialPage = uiState.initialPage,
+                                onPageChanged = viewModel::onVisualPageChanged,
                                 onPreviousChapter = viewModel::previousChapter,
                                 onNextChapter = viewModel::nextChapter,
                                 onTap = viewModel::toggleControls,
