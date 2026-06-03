@@ -36,6 +36,8 @@ fun EpubReaderView(
     chapterFilePath: String,
     readingPrefs: ReadingPrefs,
     currentTtsSegment: TextSegment?,
+    initialPage: Int,
+    onPageChanged: (Int) -> Unit,
     onPreviousChapter: () -> Unit,
     onNextChapter: () -> Unit,
     onTap: () -> Unit,
@@ -187,7 +189,12 @@ fun EpubReaderView(
     val styleHolder = remember { mutableStateOf("") }
     styleHolder.value = styleScript
 
+    val initialPageHolder = remember { mutableStateOf(0) }
+    initialPageHolder.value = initialPage
+    val initialPageApplied = remember { mutableStateOf(false) }
+
     // Lambdas actualizadas — evita stale closures en pointerInput.
+    val latestOnPageChanged by rememberUpdatedState(onPageChanged)
     val latestOnPreviousChapter by rememberUpdatedState(onPreviousChapter)
     val latestOnNextChapter by rememberUpdatedState(onNextChapter)
     val latestOnTap by rememberUpdatedState(onTap)
@@ -268,6 +275,14 @@ fun EpubReaderView(
                                             null
                                         )
                                     }
+                                    val startPage = initialPageHolder.value
+                                    if (startPage > 0 && !initialPageApplied.value) {
+                                        initialPageApplied.value = true
+                                        view.evaluateJavascript(
+                                            "javascript:(function(){ window.__recalc(); window.__currentPage = Math.min($startPage, window.__totalPages - 1); window.scrollTo(window.__currentPage * window.innerWidth, 0); })();",
+                                            null
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -329,6 +344,10 @@ fun EpubReaderView(
                                         if (result == "false" || result == "null" || result == "\"nohelper\"") {
                                             goToLastOnLoad.value = true
                                             latestOnPreviousChapter()
+                                        } else {
+                                            wv.evaluateJavascript("(function(){ return window.__currentPage; })();") { p ->
+                                                p?.toIntOrNull()?.let { latestOnPageChanged(it) }
+                                            }
                                         }
                                     }
                                 }
@@ -345,6 +364,10 @@ fun EpubReaderView(
                                         Log.d("EpubReader", "nextPage js result=$result")
                                         if (result == "false" || result == "null" || result == "\"nohelper\"") {
                                             latestOnNextChapter()
+                                        } else {
+                                            wv.evaluateJavascript("(function(){ return window.__currentPage; })();") { p ->
+                                                p?.toIntOrNull()?.let { latestOnPageChanged(it) }
+                                            }
                                         }
                                     }
                                 }

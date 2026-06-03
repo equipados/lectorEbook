@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import com.ebookreader.core.data.preferences.TtsEngineType
 import com.ebookreader.core.data.preferences.UserPreferences
+import com.ebookreader.core.data.repository.BookRepository
 import com.ebookreader.core.tts.engine.CloudTtsEngine
 import com.ebookreader.core.tts.engine.LocalTtsEngine
 import com.ebookreader.core.tts.engine.TtsEngine
@@ -21,8 +22,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,7 +37,8 @@ class TtsControllerImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val localEngine: LocalTtsEngine,
     private val cloudEngine: CloudTtsEngine,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val bookRepository: BookRepository
 ) : TtsController {
 
     private val _state = MutableStateFlow(TtsState())
@@ -47,6 +51,7 @@ class TtsControllerImpl @Inject constructor(
     override val nowPlaying: StateFlow<NowPlayingMetadata> = _nowPlaying.asStateFlow()
 
     private var chapterTitles: List<String> = emptyList()
+    private var bookId: Long? = null
     private var bookTitle: String = ""
     private var bookAuthor: String = ""
     private var bookCoverPath: String? = null
@@ -106,6 +111,20 @@ class TtsControllerImpl @Inject constructor(
         state
             .onEach { refreshNowPlaying() }
             .launchIn(scope)
+
+        // Persiste la posición de audio (capítulo + frase) cada vez que avanza
+        // el segmento, también en segundo plano (el controller es singleton).
+        state
+            .map { it.currentSegmentIndex to it.currentChapterIndex }
+            .distinctUntilChanged()
+            .onEach { (segment, chapter) ->
+                val id = bookId
+                if (id != null && segments.isNotEmpty()) {
+                    val progress = (segment.toFloat() / segments.size).coerceIn(0f, 1f)
+                    runCatching { bookRepository.saveAudioPosition(id, chapter, segment, progress) }
+                }
+            }
+            .launchIn(scope)
     }
 
     private val activeEngine: TtsEngine
@@ -115,6 +134,7 @@ class TtsControllerImpl @Inject constructor(
         }
 
     override suspend fun loadText(chapters: List<Pair<String, String>>) {
+        bookId = null
         chapterTitles = chapters.map { it.first }
         val built = mutableListOf<TextSegment>()
         val lengths = mutableMapOf<Int, Int>()
@@ -276,6 +296,19 @@ class TtsControllerImpl @Inject constructor(
         }
     }
 
+    override suspend fun jumpToSegment(index: Int) {
+        if (segments.isEmpty()) return
+        val safe = index.coerceIn(0, segments.lastIndex)
+        val segment = segments[safe]
+        _state.update {
+            it.copy(
+                currentSegmentIndex = safe,
+                currentChapterIndex = segment.chapterIndex
+            )
+        }
+        _currentSegment.value = segment
+    }
+
     override fun setSpeed(speed: Float) {
         _state.update { it.copy(speed = speed) }
         activeEngine.setSpeed(speed)
@@ -295,7 +328,8 @@ class TtsControllerImpl @Inject constructor(
         cloudEngine.shutdown()
     }
 
-    override fun setBookInfo(title: String, author: String, coverPath: String?) {
+    override fun setBookInfo(bookId: Long, title: String, author: String, coverPath: String?) {
+        this.bookId = bookId
         bookTitle = title
         bookAuthor = author
         bookCoverPath = coverPath

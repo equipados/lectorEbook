@@ -42,6 +42,12 @@ interface BookDao {
     @Query("UPDATE books SET progress = :progress, lastPosition = :position, lastAccess = :timestamp WHERE id = :id")
     suspend fun updateProgress(id: Long, progress: Float, position: String, timestamp: Long)
 
+    @Query("UPDATE books SET lastChapter = :chapter, lastSegment = :segment, lastPosition = :chapterStr, progress = :progress, lastAccess = :timestamp WHERE id = :id")
+    suspend fun updateAudioPosition(id: Long, chapter: Int, segment: Int, chapterStr: String, progress: Float, timestamp: Long)
+
+    @Query("UPDATE books SET lastChapter = :chapter, lastPage = :page, lastPosition = :chapterStr, lastAccess = :timestamp WHERE id = :id")
+    suspend fun updateVisualPosition(id: Long, chapter: Int, page: Int, chapterStr: String, timestamp: Long)
+
     @Delete
     suspend fun delete(book: BookEntity)
 
