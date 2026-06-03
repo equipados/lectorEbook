@@ -36,6 +36,7 @@ data class ReaderUiState(
     val chapterTextLengths: List<Int> = emptyList(),
     val firstContentChapterIndex: Int = 0,
     val currentChapterIndex: Int = 0,
+    val initialPage: Int = 0,
     val isFullscreen: Boolean = false,
     val showSettingsSheet: Boolean = false,
     val errorMessage: String? = null
@@ -94,11 +95,12 @@ class ReaderViewModel @Inject constructor(
                 }
                 ttsController.loadText(chapters)
 
-                // Informa al controller de los datos del libro para que la
-                // notificación de controles multimedia (lockscreen, bluetooth)
-                // muestre título, autor y carátula al reproducir desde el visor,
-                // igual que ya hace el reproductor de audio.
-                ttsController.setBookInfo(book.title, book.author, book.coverPath)
+                // Restaura la frase donde se quedó la lectura (sin reproducir).
+                ttsController.jumpToSegment(book.lastSegment)
+
+                // Informa al controller de los datos del libro (metadata de
+                // controles multimedia) y activa la persistencia con el bookId.
+                ttsController.setBookInfo(book.id, book.title, book.author, book.coverPath)
 
                 // Longitudes de los capítulos (para detectar capítulos de
                 // índice/portada con muy poco texto) y primer capítulo con
@@ -113,7 +115,7 @@ class ReaderViewModel @Inject constructor(
                 if (book.format == BookFormat.EPUB) {
                     val extracted = epubParser.extractToCache(file)
                     chapterFiles = extracted.chapterFiles.map { it.absolutePath }
-                    val saved = book.lastPosition.toIntOrNull() ?: 0
+                    val saved = book.lastChapter
                     initialChapter = if (chapterFiles.isEmpty()) {
                         0
                     } else {
@@ -132,7 +134,8 @@ class ReaderViewModel @Inject constructor(
                         chapterFiles = chapterFiles,
                         chapterTextLengths = textLengths,
                         firstContentChapterIndex = firstContent,
-                        currentChapterIndex = initialChapter
+                        currentChapterIndex = initialChapter,
+                        initialPage = book.lastPage,
                     )
                 }
             } catch (e: Exception) {
@@ -248,6 +251,13 @@ class ReaderViewModel @Inject constructor(
         if (prev != state.currentChapterIndex) {
             _uiState.update { it.copy(currentChapterIndex = prev) }
             persistChapterPosition(prev, total)
+        }
+    }
+
+    fun onVisualPageChanged(page: Int) {
+        val state = _uiState.value
+        viewModelScope.launch {
+            bookRepository.saveVisualPosition(bookId, state.currentChapterIndex, page)
         }
     }
 
