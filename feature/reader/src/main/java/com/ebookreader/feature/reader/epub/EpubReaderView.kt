@@ -216,31 +216,92 @@ fun EpubReaderView(
             window.__normSeg = function(s){
                 return s.replace(/['']/g,"'").replace(/[""]/g,'"').replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
             };
-            window.__pageBase = function(){
-                var cp = (typeof window.__currentPage === 'number') ? window.__currentPage : 0;
-                return cp * window.innerWidth;
-            };
             window.__findSpan = function(text){
                 var t = window.__normSeg(text);
                 if (!t) return null;
                 var spans = document.querySelectorAll('span.__seg');
                 for (var i=0;i<spans.length;i++){
-                    var st = window.__normSeg(spans[i].textContent);
-                    if (st === t || st.indexOf(t) === 0 || t.indexOf(st) === 0) return spans[i];
+                    if (window.__normSeg(spans[i].textContent) === t) return spans[i];
                 }
-                return null;
+                var best = null, bestLen = 0;
+                for (var j=0;j<spans.length;j++){
+                    var st = window.__normSeg(spans[j].textContent);
+                    if (st.length < 6) continue;
+                    if (t.indexOf(st) >= 0 || st.indexOf(t) >= 0) {
+                        var len = Math.min(st.length, t.length);
+                        if (len > bestLen) { bestLen = len; best = spans[j]; }
+                    }
+                }
+                return best;
+            };
+            // Primera caja visual del inline (no la unión de todas); fiable para
+            // saber en qué columna cae el span cuando medimos en página 0.
+            window.__firstRectLeft = function(el){
+                var rects = el.getClientRects();
+                for (var i=0;i<rects.length;i++){ if (rects[i].width > 0 && rects[i].height > 0) return rects[i].left; }
+                return el.getBoundingClientRect().left;
+            };
+            // Cachea la página de cada frase MIDIENDO EN PÁGINA 0 (único estado en
+            // que la geometría de columnas es fiable en este WebView). Guarda el
+            // resultado en data-page para no recalcular nunca con scroll aplicado.
+            window.__buildPageMap = function(){
+                var savedPage = (typeof window.__currentPage === 'number') ? window.__currentPage : 0;
+                var spans = document.querySelectorAll('span.__seg');
+                window.__currentPage = 0;
+                window.scrollTo(0, 0);
+                void document.body.offsetWidth;
+                var dist = {}, maxLeft = 0;
+                for (var i=0;i<spans.length;i++){
+                    var left = window.__firstRectLeft(spans[i]);
+                    if (left > maxLeft) maxLeft = left;
+                    var page = Math.max(0, Math.floor(left / window.innerWidth));
+                    spans[i].setAttribute('data-page', String(page));
+                    dist[page] = (dist[page]||0)+1;
+                }
+                window.__pageMapReady = true;
+                console.log('PAGEMAP spans=' + spans.length + ' maxLeft=' + Math.round(maxLeft) + ' iw=' + window.innerWidth + ' dist=' + JSON.stringify(dist));
+                window.__currentPage = savedPage;
+                window.scrollTo(savedPage * window.innerWidth, 0);
+            };
+            window.__schedulePageMapBuild = function(){
+                if (window.__pageMapPending) return;
+                window.__pageMapPending = true;
+                requestAnimationFrame(function(){
+                    requestAnimationFrame(function(){
+                        window.__pageMapPending = false;
+                        window.__buildPageMap();
+                    });
+                });
             };
             window.__pageOfSentence = function(text){
                 var sp = window.__findSpan(text);
                 if (!sp) return -1;
-                var r = sp.getBoundingClientRect();
-                return Math.floor((r.left + window.__pageBase()) / window.innerWidth);
+                var pg = parseInt(sp.getAttribute('data-page') || '-1', 10);
+                if (pg >= 0) return pg;
+                window.__buildPageMap();
+                return parseInt(sp.getAttribute('data-page') || '-1', 10);
             };
             window.__highlightSentence = function(text){
                 var prev = document.querySelector('span.__seg.__active');
                 if (prev) prev.classList.remove('__active');
                 var sp = window.__findSpan(text);
                 if (sp) sp.classList.add('__active');
+            };
+            // Resalta la frase y alinea el visor a su página cacheada (data-page).
+            window.__highlightAndGoToSentence = function(text){
+                var prev = document.querySelector('span.__seg.__active');
+                if (prev) prev.classList.remove('__active');
+                var sp = window.__findSpan(text);
+                if (!sp) return -1;
+                sp.classList.add('__active');
+                var pg = parseInt(sp.getAttribute('data-page') || '-1', 10);
+                if (pg < 0) { window.__buildPageMap(); pg = parseInt(sp.getAttribute('data-page') || '-1', 10); }
+                console.log('GOTO pg=' + pg + ' cur=' + window.__currentPage + ' mapReady=' + window.__pageMapReady);
+                if (pg >= 0 && pg !== window.__currentPage) {
+                    window.__currentPage = pg;
+                    window.scrollTo(pg * window.innerWidth, 0);
+                }
+                return pg;
             };
             window.__clearHighlight = function(){
                 var prev = document.querySelector('span.__seg.__active');
@@ -249,12 +310,12 @@ fun EpubReaderView(
             window.__firstSentenceOfPage = function(page){
                 var spans = document.querySelectorAll('span.__seg');
                 for (var i=0;i<spans.length;i++){
-                    var r = spans[i].getBoundingClientRect();
-                    var pg = Math.floor((r.left + window.__pageBase()) / window.innerWidth);
+                    var pg = parseInt(spans[i].getAttribute('data-page') || '-1', 10);
                     if (pg === page) return spans[i].textContent;
                 }
                 return '';
             };
+            window.__schedulePageMapBuild();
         })();
         """.trimIndent()
     }
@@ -312,7 +373,12 @@ fun EpubReaderView(
     // visible (tamaño, tema, interlineado). No depende del update del
     // AndroidView, que puede no dispararse al instante.
     LaunchedEffect(styleScript) {
-        webViewRef.value?.evaluateJavascript(styleScript, null)
+        webViewRef.value?.evaluateJavascript(styleScript) {
+            webViewRef.value?.evaluateJavascript(
+                "javascript:(function(){ if(window.__schedulePageMapBuild) window.__schedulePageMapBuild(); })();",
+                null
+            )
+        }
     }
 
     // Resalta la frase del TTS y lleva el visor a su página (si es del capítulo
@@ -323,7 +389,7 @@ fun EpubReaderView(
         if (seg != null && seg.chapterIndex == visibleChapterIndex) {
             val json = org.json.JSONObject.quote(seg.text)
             wv.evaluateJavascript(
-                "javascript:(function(){ if(!window.__highlightSentence) return; window.__highlightSentence($json); var pg = window.__pageOfSentence($json); if (pg >= 0 && pg !== window.__currentPage) { window.__currentPage = pg; window.scrollTo(pg * window.innerWidth, 0); } })();",
+                "javascript:(function(){ if(window.__highlightAndGoToSentence) return window.__highlightAndGoToSentence($json); return -1; })();",
                 null
             )
         } else {
@@ -386,7 +452,7 @@ fun EpubReaderView(
                                     if (activeSeg != null && activeSeg.chapterIndex == visibleChapterHolder.value) {
                                         val sJson = org.json.JSONObject.quote(activeSeg.text)
                                         view.evaluateJavascript(
-                                            "javascript:(function(){ if(!window.__highlightSentence) return; window.__highlightSentence($sJson); var pg = window.__pageOfSentence($sJson); if (pg >= 0) { window.__currentPage = pg; window.scrollTo(pg * window.innerWidth, 0); } })();",
+                                            "javascript:(function(){ if(window.__highlightAndGoToSentence) window.__highlightAndGoToSentence($sJson); })();",
                                             null
                                         )
                                     }
@@ -403,8 +469,14 @@ fun EpubReaderView(
                     view.tag = chapterFilePath
                     view.loadUrl("file://$chapterFilePath")
                 } else {
-                    // Mismo capítulo → sólo reaplica estilos (NO resetea paginación).
-                    view.evaluateJavascript(styleHolder.value, null)
+                    // Mismo capítulo → sólo reaplica estilos (NO resetea paginación)
+                    // y reconstruye el mapa de páginas (el reflow puede cambiarlas).
+                    view.evaluateJavascript(styleHolder.value) {
+                        view.evaluateJavascript(
+                            "javascript:(function(){ if(window.__schedulePageMapBuild) window.__schedulePageMapBuild(); })();",
+                            null
+                        )
+                    }
                 }
             },
             modifier = Modifier.fillMaxSize()
