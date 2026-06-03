@@ -16,7 +16,10 @@ interface TtsController {
     val nowPlaying: StateFlow<NowPlayingMetadata>
 
     /** Datos del libro en reproducción (para lockscreen / coche). */
-    fun setBookInfo(title: String, author: String, coverPath: String?)
+    fun setBookInfo(bookId: Long, title: String, author: String, coverPath: String?)
+
+    /** Posiciona la lectura en el segmento global indicado SIN reproducir. */
+    suspend fun jumpToSegment(index: Int)
 
     /**
      * Load chapters as title-content pairs and split into speakable segments.
