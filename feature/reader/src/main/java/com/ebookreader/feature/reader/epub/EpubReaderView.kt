@@ -115,7 +115,8 @@ fun EpubReaderView(
                 'body > * { max-width:' + colW + 'px !important; }' +
                 'p, div, span, li, blockquote { max-width:' + colW + 'px !important; box-sizing:border-box !important; }' +
                 'img { max-width: ' + colW + 'px !important; max-height: ' + (window.innerHeight - 2 * padY) + 'px !important; height: auto !important; object-fit: contain !important; page-break-inside: avoid !important; break-inside: avoid !important; }' +
-                'table, pre, code, svg { max-width: ' + colW + 'px !important; overflow: hidden !important; break-inside: avoid !important; word-wrap:break-word !important; }';
+                'table, pre, code, svg { max-width: ' + colW + 'px !important; overflow: hidden !important; break-inside: avoid !important; word-wrap:break-word !important; }' +
+                'span.__seg.__active { background-color: rgba(255, 213, 79, 0.45); }';
 
             var b = document.body;
             b.style.margin = '0';
@@ -180,6 +181,79 @@ fun EpubReaderView(
         javascript:(function(){
             window.__currentPage = 0;
             window.scrollTo(0, 0);
+        })();
+        """.trimIndent()
+    }
+
+    // Envuelve cada frase del capítulo en un <span class="__seg"> (inline, no
+    // rompe la paginación) y define helpers para mapear frase<->página y resaltar.
+    val segScript = remember {
+        """
+        javascript:(function(){
+            if (!document.body) return;
+            if (!window.__segWrapped) {
+                var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+                var nodes = [], n;
+                while (n = walker.nextNode()) { if (n.nodeValue && n.nodeValue.replace(/\s/g,'').length > 0) nodes.push(n); }
+                var seg = 0;
+                nodes.forEach(function(node){
+                    var parts = node.nodeValue.match(/[^.!?]+[.!?]+\s*|[^.!?]+${'$'}/g);
+                    if (!parts) return;
+                    var frag = document.createDocumentFragment();
+                    parts.forEach(function(p){
+                        if (p.replace(/\s/g,'').length === 0) { frag.appendChild(document.createTextNode(p)); return; }
+                        var sp = document.createElement('span');
+                        sp.className = '__seg';
+                        sp.setAttribute('data-seg', seg++);
+                        sp.textContent = p;
+                        frag.appendChild(sp);
+                    });
+                    if (node.parentNode) node.parentNode.replaceChild(frag, node);
+                });
+                window.__segWrapped = true;
+            }
+            window.__normSeg = function(s){
+                return s.replace(/['']/g,"'").replace(/[""]/g,'"').replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
+            };
+            window.__pageBase = function(){
+                var cp = (typeof window.__currentPage === 'number') ? window.__currentPage : 0;
+                return cp * window.innerWidth;
+            };
+            window.__findSpan = function(text){
+                var t = window.__normSeg(text);
+                if (!t) return null;
+                var spans = document.querySelectorAll('span.__seg');
+                for (var i=0;i<spans.length;i++){
+                    var st = window.__normSeg(spans[i].textContent);
+                    if (st === t || st.indexOf(t) === 0 || t.indexOf(st) === 0) return spans[i];
+                }
+                return null;
+            };
+            window.__pageOfSentence = function(text){
+                var sp = window.__findSpan(text);
+                if (!sp) return -1;
+                var r = sp.getBoundingClientRect();
+                return Math.floor((r.left + window.__pageBase()) / window.innerWidth);
+            };
+            window.__highlightSentence = function(text){
+                var prev = document.querySelector('span.__seg.__active');
+                if (prev) prev.classList.remove('__active');
+                var sp = window.__findSpan(text);
+                if (sp) sp.classList.add('__active');
+            };
+            window.__clearHighlight = function(){
+                var prev = document.querySelector('span.__seg.__active');
+                if (prev) prev.classList.remove('__active');
+            };
+            window.__firstSentenceOfPage = function(page){
+                var spans = document.querySelectorAll('span.__seg');
+                for (var i=0;i<spans.length;i++){
+                    var r = spans[i].getBoundingClientRect();
+                    var pg = Math.floor((r.left + window.__pageBase()) / window.innerWidth);
+                    if (pg === page) return spans[i].textContent;
+                }
+                return '';
+            };
         })();
         """.trimIndent()
     }
@@ -267,6 +341,7 @@ fun EpubReaderView(
                             view?.evaluateJavascript(styleHolder.value) {
                                 // 2. Reset: nuevo capítulo → página 0, scroll 0
                                 view.evaluateJavascript(resetScript) {
+                                    view.evaluateJavascript(segScript, null)
                                     // 3. Si venimos de "capítulo anterior", ir a la última página
                                     if (goToLastOnLoad.value) {
                                         goToLastOnLoad.value = false
