@@ -27,5 +27,9 @@ interface BookRepository {
 
     suspend fun updateProgress(id: Long, progress: Float, position: String)
 
+    suspend fun saveAudioPosition(id: Long, chapter: Int, segment: Int, progress: Float)
+
+    suspend fun saveVisualPosition(id: Long, chapter: Int, page: Int)
+
     suspend fun delete(book: BookEntity)
 }

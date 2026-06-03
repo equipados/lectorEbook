@@ -101,4 +101,32 @@ class BookRepositoryImplTest {
 
         coVerify(exactly = 1) { bookDao.delete(sampleBook) }
     }
+
+    // -----------------------------------------------------------------------
+    // saveAudioPosition
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `saveAudioPosition delega en updateAudioPosition con el capitulo como string`() = runTest {
+        val dao = mockk<BookDao>(relaxed = true)
+        val repo = BookRepositoryImpl(dao)
+
+        repo.saveAudioPosition(id = 7, chapter = 3, segment = 42, progress = 0.5f)
+
+        coVerify { dao.updateAudioPosition(7, 3, 42, "3", 0.5f, any()) }
+    }
+
+    // -----------------------------------------------------------------------
+    // saveVisualPosition
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun `saveVisualPosition delega en updateVisualPosition con el capitulo como string`() = runTest {
+        val dao = mockk<BookDao>(relaxed = true)
+        val repo = BookRepositoryImpl(dao)
+
+        repo.saveVisualPosition(id = 7, chapter = 2, page = 5)
+
+        coVerify { dao.updateVisualPosition(7, 2, 5, "2", any()) }
+    }
 }

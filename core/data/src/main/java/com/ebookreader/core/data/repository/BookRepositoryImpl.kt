@@ -36,6 +36,12 @@ class BookRepositoryImpl @Inject constructor(
     override suspend fun updateProgress(id: Long, progress: Float, position: String) =
         bookDao.updateProgress(id, progress, position, System.currentTimeMillis())
 
+    override suspend fun saveAudioPosition(id: Long, chapter: Int, segment: Int, progress: Float) =
+        bookDao.updateAudioPosition(id, chapter, segment, chapter.toString(), progress, System.currentTimeMillis())
+
+    override suspend fun saveVisualPosition(id: Long, chapter: Int, page: Int) =
+        bookDao.updateVisualPosition(id, chapter, page, chapter.toString(), System.currentTimeMillis())
+
     override suspend fun delete(book: BookEntity) =
         bookDao.delete(book)
 }
