@@ -120,7 +120,7 @@ class TtsControllerImpl @Inject constructor(
             .onEach { (segment, chapter) ->
                 val id = bookId
                 if (id != null && segments.isNotEmpty()) {
-                    val progress = segment.toFloat() / segments.size
+                    val progress = (segment.toFloat() / segments.size).coerceIn(0f, 1f)
                     runCatching { bookRepository.saveAudioPosition(id, chapter, segment, progress) }
                 }
             }
@@ -134,6 +134,7 @@ class TtsControllerImpl @Inject constructor(
         }
 
     override suspend fun loadText(chapters: List<Pair<String, String>>) {
+        bookId = null
         chapterTitles = chapters.map { it.first }
         val built = mutableListOf<TextSegment>()
         val lengths = mutableMapOf<Int, Int>()
