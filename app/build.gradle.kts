@@ -14,12 +14,15 @@ android {
         applicationId = "com.ebookreader"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "2.0"
     }
 
     buildTypes {
         release {
+            // Firmado con la keystore debug hasta tener keystore release propia
+            // (pendiente para publicación en Play Store).
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
