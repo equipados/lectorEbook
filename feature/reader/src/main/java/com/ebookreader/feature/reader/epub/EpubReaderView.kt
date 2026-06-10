@@ -138,30 +138,77 @@ fun EpubReaderView(
             window.__pageWidth = window.innerWidth;
 
             // Definir helpers sólo una vez (o refrescar si faltan).
+            // CLAVE: en este WebView el layout viewport (window.innerWidth=1440)
+            // está INFLADO ~x4 respecto al viewport CSS real (visualViewport.
+            // width≈360). getClientRects(), scrollWidth Y TAMBIÉN scrollTo viven
+            // en el espacio CSS real (verificado por CDP en dispositivo). Por eso:
+            //   - cssPageWidth (≈360) se usa para data-page, totalPages y como
+            //     paso de scroll (scrollTo(page * cssPageWidth)).
+            //   - el motor limita el scroll a scrollWidth - layoutViewport (1440),
+            //     así que ampliamos min-width del <html> para que las últimas
+            //     páginas sean alcanzables.
+            window.__computePageMetrics = function() {
+                var html = document.documentElement;
+                html.style.minWidth = '0px';
+                void document.body.offsetWidth;
+                var cs = window.getComputedStyle(document.body);
+                var vv = window.visualViewport || {};
+                var colW = parseFloat(cs.columnWidth || cs.webkitColumnWidth) || 0;
+                var gap = parseFloat(cs.columnGap || cs.webkitColumnGap) || 0;
+                var cssPageWidth =
+                    (vv.width && vv.width > 0) ? vv.width :
+                    (colW > 0 ? (colW + gap) : document.body.clientWidth);
+                if (!cssPageWidth || cssPageWidth <= 0) cssPageWidth = window.innerWidth;
+                var contentCssWidth = Math.max(
+                    document.body.scrollWidth || 0,
+                    document.documentElement.scrollWidth || 0
+                );
+                var totalPages = Math.max(1, Math.ceil(contentCssWidth / cssPageWidth));
+                // Slack para que scrollTo((total-1)*cssPageWidth) no quede
+                // recortado por el clamp del motor (scrollWidth - clientWidth).
+                var neededWidth = (totalPages - 1) * cssPageWidth + html.clientWidth;
+                if (neededWidth > contentCssWidth) html.style.minWidth = neededWidth + 'px';
+                window.__pageMetrics = {
+                    cssPageWidth: cssPageWidth,
+                    scrollStep: cssPageWidth,
+                    totalPages: totalPages,
+                    ratio: window.innerWidth / cssPageWidth
+                };
+                return window.__pageMetrics;
+            };
+            window.__getPageMetrics = function() {
+                return window.__pageMetrics || window.__computePageMetrics();
+            };
+            window.__scrollToPage = function(page) {
+                var m = window.__getPageMetrics();
+                var targetPage = Math.max(0, Math.min(page, m.totalPages - 1));
+                window.__currentPage = targetPage;
+                window.scrollTo(Math.round(targetPage * m.scrollStep), 0);
+                return targetPage;
+            };
             window.__recalc = function() {
-                var sw = document.body.scrollWidth;
-                window.__totalPages = Math.max(1, Math.round(sw / window.innerWidth));
+                var m = window.__computePageMetrics();
+                window.__totalPages = m.totalPages;
+                window.__pageCssWidth = m.cssPageWidth;
+                window.__pageScrollStep = m.scrollStep;
             };
             window.__nextPage = function() {
                 window.__recalc();
                 if (typeof window.__currentPage !== 'number') window.__currentPage = 0;
                 if (window.__currentPage + 1 >= window.__totalPages) return false;
-                window.__currentPage += 1;
-                window.scrollTo(window.__currentPage * window.innerWidth, 0);
+                window.__scrollToPage(window.__currentPage + 1);
                 return true;
             };
             window.__prevPage = function() {
                 window.__recalc();
                 if (typeof window.__currentPage !== 'number') window.__currentPage = 0;
                 if (window.__currentPage <= 0) return false;
-                window.__currentPage -= 1;
-                window.scrollTo(window.__currentPage * window.innerWidth, 0);
+                window.__scrollToPage(window.__currentPage - 1);
                 return true;
             };
             window.__goToLastPage = function() {
                 window.__recalc();
-                window.__currentPage = window.__totalPages - 1;
-                window.scrollTo(window.__currentPage * window.innerWidth, 0);
+                window.__scrollToPage(window.__totalPages - 1);
             };
 
             // Si venimos de una recomposición y ya teníamos página,
@@ -169,8 +216,7 @@ fun EpubReaderView(
             // no tocamos (onPageFinished se encarga del reset inicial).
             window.__recalc();
             if (typeof window.__currentPage === 'number') {
-                var target = Math.min(window.__currentPage, window.__totalPages - 1) * window.innerWidth;
-                window.scrollTo(target, 0);
+                window.__scrollToPage(window.__currentPage);
             }
         })();
         """.trimIndent()
@@ -247,21 +293,16 @@ fun EpubReaderView(
             window.__buildPageMap = function(){
                 var savedPage = (typeof window.__currentPage === 'number') ? window.__currentPage : 0;
                 var spans = document.querySelectorAll('span.__seg');
-                window.__currentPage = 0;
-                window.scrollTo(0, 0);
+                window.__scrollToPage(0);
                 void document.body.offsetWidth;
-                var dist = {}, maxLeft = 0;
+                var m = window.__computePageMetrics();
                 for (var i=0;i<spans.length;i++){
                     var left = window.__firstRectLeft(spans[i]);
-                    if (left > maxLeft) maxLeft = left;
-                    var page = Math.max(0, Math.floor(left / window.innerWidth));
+                    var page = Math.max(0, Math.floor(left / m.cssPageWidth));
                     spans[i].setAttribute('data-page', String(page));
-                    dist[page] = (dist[page]||0)+1;
                 }
                 window.__pageMapReady = true;
-                console.log('PAGEMAP spans=' + spans.length + ' maxLeft=' + Math.round(maxLeft) + ' iw=' + window.innerWidth + ' dist=' + JSON.stringify(dist));
-                window.__currentPage = savedPage;
-                window.scrollTo(savedPage * window.innerWidth, 0);
+                window.__scrollToPage(savedPage);
             };
             window.__schedulePageMapBuild = function(){
                 if (window.__pageMapPending) return;
@@ -296,10 +337,8 @@ fun EpubReaderView(
                 sp.classList.add('__active');
                 var pg = parseInt(sp.getAttribute('data-page') || '-1', 10);
                 if (pg < 0) { window.__buildPageMap(); pg = parseInt(sp.getAttribute('data-page') || '-1', 10); }
-                console.log('GOTO pg=' + pg + ' cur=' + window.__currentPage + ' mapReady=' + window.__pageMapReady);
                 if (pg >= 0 && pg !== window.__currentPage) {
-                    window.__currentPage = pg;
-                    window.scrollTo(pg * window.innerWidth, 0);
+                    window.__scrollToPage(pg);
                 }
                 return pg;
             };
@@ -444,7 +483,7 @@ fun EpubReaderView(
                                     if (startPage > 0 && !initialPageApplied.value) {
                                         initialPageApplied.value = true
                                         view.evaluateJavascript(
-                                            "javascript:(function(){ window.__recalc(); window.__currentPage = Math.min($startPage, window.__totalPages - 1); window.scrollTo(window.__currentPage * window.innerWidth, 0); })();",
+                                            "javascript:(function(){ window.__recalc(); window.__scrollToPage($startPage); })();",
                                             null
                                         )
                                     }
