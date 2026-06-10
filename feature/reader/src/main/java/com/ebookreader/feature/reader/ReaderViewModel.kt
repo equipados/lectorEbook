@@ -55,6 +55,11 @@ class ReaderViewModel @Inject constructor(
 
     private val bookId: Long = checkNotNull(savedStateHandle["bookId"])
 
+    // Frase de la página visible tras navegar a mano: al pulsar play, la lectura
+    // arranca ahí en vez de continuar por donde iba el TTS.
+    private var pendingStartSentence: String = ""
+    private var userNavigatedSincePlay: Boolean = false
+
     private val _uiState = MutableStateFlow(ReaderUiState())
     val uiState: StateFlow<ReaderUiState> = _uiState.asStateFlow()
 
@@ -168,27 +173,34 @@ class ReaderViewModel @Inject constructor(
                 ttsController.pause()
             } else {
                 val state = _uiState.value
-                val readerChapter = state.currentChapterIndex
-                val currentLen = state.chapterTextLengths.getOrNull(readerChapter) ?: 0
-
-                // Si el capítulo actual tiene muy poco texto (portada, índice,
-                // página de copyright...) saltar al primer capítulo narrativo
-                // para que no lea contenido sin sentido en voz alta.
-                val targetChapter = if (currentLen < NARRATIVE_CHAPTER_MIN_CHARS) {
-                    state.firstContentChapterIndex.also { idx ->
-                        if (idx != readerChapter) {
-                            _uiState.update { it.copy(currentChapterIndex = idx) }
-                            persistChapterPosition(idx, state.chapterFiles.size)
-                        }
-                    }
+                if (userNavigatedSincePlay && pendingStartSentence.isNotBlank()) {
+                    // El usuario navegó a mano: arrancar en la frase de la página visible.
+                    ttsController.jumpToSentenceByText(state.currentChapterIndex, pendingStartSentence)
+                    userNavigatedSincePlay = false
+                    ttsController.play()
                 } else {
-                    readerChapter
-                }
+                    val readerChapter = state.currentChapterIndex
+                    val currentLen = state.chapterTextLengths.getOrNull(readerChapter) ?: 0
 
-                if (ttsController.state.value.currentChapterIndex != targetChapter) {
-                    ttsController.jumpToChapter(targetChapter)
+                    // Si el capítulo actual tiene muy poco texto (portada, índice,
+                    // página de copyright...) saltar al primer capítulo narrativo
+                    // para que no lea contenido sin sentido en voz alta.
+                    val targetChapter = if (currentLen < NARRATIVE_CHAPTER_MIN_CHARS) {
+                        state.firstContentChapterIndex.also { idx ->
+                            if (idx != readerChapter) {
+                                _uiState.update { it.copy(currentChapterIndex = idx) }
+                                persistChapterPosition(idx, state.chapterFiles.size)
+                            }
+                        }
+                    } else {
+                        readerChapter
+                    }
+
+                    if (ttsController.state.value.currentChapterIndex != targetChapter) {
+                        ttsController.jumpToChapter(targetChapter)
+                    }
+                    ttsController.play()
                 }
-                ttsController.play()
             }
         }
     }
@@ -266,6 +278,14 @@ class ReaderViewModel @Inject constructor(
         if (prev != state.currentChapterIndex) {
             _uiState.update { it.copy(currentChapterIndex = prev) }
             persistChapterPosition(prev, total)
+        }
+    }
+
+    /** El visor notifica la primera frase de la página tras navegar a mano. */
+    fun onVisibleSentenceChanged(text: String) {
+        if (text.isNotBlank()) {
+            pendingStartSentence = text
+            userNavigatedSincePlay = true
         }
     }
 

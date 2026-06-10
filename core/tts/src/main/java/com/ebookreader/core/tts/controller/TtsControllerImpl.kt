@@ -309,6 +309,25 @@ class TtsControllerImpl @Inject constructor(
         _currentSegment.value = segment
     }
 
+    override suspend fun jumpToSentenceByText(chapter: Int, text: String) {
+        if (segments.isEmpty()) return
+        val norm = normalizeForMatch(text)
+        if (norm.isBlank()) return
+        val candidates = segments.withIndex().filter { it.value.chapterIndex == chapter }
+        if (candidates.isEmpty()) return
+        val match = candidates.firstOrNull {
+            val st = normalizeForMatch(it.value.text)
+            st == norm || st.startsWith(norm) || norm.startsWith(st)
+        } ?: candidates.first()
+        jumpToSegment(match.index)
+    }
+
+    private fun normalizeForMatch(s: String): String =
+        s.replace('‘', '\'').replace('’', '\'')
+            .replace('“', '"').replace('”', '"')
+            .replace('–', '-').replace('—', '-')
+            .replace(Regex("\\s+"), " ").trim()
+
     override fun setSpeed(speed: Float) {
         _state.update { it.copy(speed = speed) }
         activeEngine.setSpeed(speed)

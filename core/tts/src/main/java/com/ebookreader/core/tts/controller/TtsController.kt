@@ -21,6 +21,9 @@ interface TtsController {
     /** Posiciona la lectura en el segmento global indicado SIN reproducir. */
     suspend fun jumpToSegment(index: Int)
 
+    /** Salta al primer segmento del capítulo cuyo texto coincide con [text]. */
+    suspend fun jumpToSentenceByText(chapter: Int, text: String)
+
     /**
      * Load chapters as title-content pairs and split into speakable segments.
      */

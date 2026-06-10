@@ -167,6 +167,7 @@ fun ReaderScreen(
                                 visibleChapterIndex = uiState.currentChapterIndex,
                                 initialPage = uiState.initialPage,
                                 onPageChanged = viewModel::onVisualPageChanged,
+                                onVisibleSentenceChanged = viewModel::onVisibleSentenceChanged,
                                 onPreviousChapter = viewModel::previousChapter,
                                 onNextChapter = viewModel::nextChapter,
                                 onTap = viewModel::toggleControls,

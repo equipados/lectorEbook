@@ -39,6 +39,7 @@ fun EpubReaderView(
     visibleChapterIndex: Int,
     initialPage: Int,
     onPageChanged: (Int) -> Unit,
+    onVisibleSentenceChanged: (String) -> Unit,
     onPreviousChapter: () -> Unit,
     onNextChapter: () -> Unit,
     onTap: () -> Unit,
@@ -374,6 +375,7 @@ fun EpubReaderView(
 
     // Lambdas actualizadas — evita stale closures en pointerInput.
     val latestOnPageChanged by rememberUpdatedState(onPageChanged)
+    val latestOnVisibleSentenceChanged by rememberUpdatedState(onVisibleSentenceChanged)
     val latestOnPreviousChapter by rememberUpdatedState(onPreviousChapter)
     val latestOnNextChapter by rememberUpdatedState(onNextChapter)
     val latestOnTap by rememberUpdatedState(onTap)
@@ -566,6 +568,10 @@ fun EpubReaderView(
                                             wv.evaluateJavascript("(function(){ return window.__currentPage; })();") { p ->
                                                 p?.toIntOrNull()?.let { latestOnPageChanged(it) }
                                             }
+                                            wv.evaluateJavascript("(function(){ return window.__firstSentenceOfPage(window.__currentPage); })();") { s ->
+                                                val decoded = runCatching { org.json.JSONTokener(s ?: "").nextValue() as? String }.getOrNull() ?: ""
+                                                if (decoded.isNotBlank()) latestOnVisibleSentenceChanged(decoded)
+                                            }
                                         }
                                     }
                                 }
@@ -585,6 +591,10 @@ fun EpubReaderView(
                                         } else {
                                             wv.evaluateJavascript("(function(){ return window.__currentPage; })();") { p ->
                                                 p?.toIntOrNull()?.let { latestOnPageChanged(it) }
+                                            }
+                                            wv.evaluateJavascript("(function(){ return window.__firstSentenceOfPage(window.__currentPage); })();") { s ->
+                                                val decoded = runCatching { org.json.JSONTokener(s ?: "").nextValue() as? String }.getOrNull() ?: ""
+                                                if (decoded.isNotBlank()) latestOnVisibleSentenceChanged(decoded)
                                             }
                                         }
                                     }
